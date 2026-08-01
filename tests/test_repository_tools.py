@@ -38,8 +38,12 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertFalse((skill_root / "AGENTS.md").exists())
 
         readme = (skill_root / "README.md").read_text(encoding="utf-8")
-        self.assertIn("../../README.md#インストール", readme)
+        self.assertIn("[`SPEC.md`](SPEC.md)", readme)
+        self.assertIn("[`dist`](dist)", readme)
+        self.assertNotIn("../../README.md#インストール", readme)
         self.assertNotIn("## インストール", readme)
+        self.assertNotIn("## 呼び出し例", readme)
+        self.assertNotIn("$sample-skill", readme)
         self.assertNotIn(".agents/skills/sample-skill", readme)
 
     def test_create_skill_refuses_invalid_name_and_existing_path(self) -> None:
@@ -70,13 +74,14 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertEqual(["sample-skill"], names)
         self.assertEqual([], issues)
 
-    def test_skill_readme_does_not_require_install_destination(self) -> None:
+    def test_skill_readme_does_not_require_usage_information(self) -> None:
         skill_root = self._create_completed_skill()
 
         readme = (skill_root / "README.md").read_text(encoding="utf-8")
         _, issues = validate_repository(self.repository_root)
 
         self.assertNotIn(".agents/skills/sample-skill", readme)
+        self.assertNotIn("$sample-skill", readme)
         self.assertEqual([], issues)
 
     def test_missing_skill_readme_references_are_reported(self) -> None:
@@ -91,7 +96,23 @@ class RepositoryToolsTest(unittest.TestCase):
         messages = [issue.message for issue in issues]
         self.assertIn("仕様の正本へのリンクを記載してください", messages)
         self.assertIn("配布物へのパスを記載してください", messages)
-        self.assertIn("明示的な呼び出し例を記載してください", messages)
+
+    def test_skill_readme_explicit_invocation_is_reported(self) -> None:
+        skill_root = self._create_completed_skill()
+        readme = skill_root / "README.md"
+        readme.write_text(
+            readme.read_text(encoding="utf-8")
+            + "\n`$sample-skill` を指定して呼び出します。\n",
+            encoding="utf-8",
+        )
+
+        _, issues = validate_repository(self.repository_root)
+
+        messages = [issue.message for issue in issues]
+        self.assertIn(
+            "明示的な呼び出し方法はルート README だけに記載してください",
+            messages,
+        )
 
     def test_missing_root_readme_common_usage_is_reported(self) -> None:
         self._create_completed_skill()
@@ -250,8 +271,7 @@ class RepositoryToolsTest(unittest.TestCase):
             "# sample-skill\n\n"
             "反復可能なサンプル処理を実行します。\n\n"
             "仕様は [SPEC.md](SPEC.md) にあります。\n"
-            "配布物は [dist](dist) にあります。\n\n"
-            "`$sample-skill` を指定して呼び出します。\n",
+            "配布物は [dist](dist) にあります。\n",
             encoding="utf-8",
         )
         distribution_root = skill_root / "dist"

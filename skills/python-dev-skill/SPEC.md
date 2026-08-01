@@ -7,6 +7,16 @@
 - Ruff と mypy が未導入の場合は、既存の開発用 dependency group や requirements file へ追加する。pytest を使用するプロジェクトでは、pytest-timeout も同じ開発依存関係へ追加する。依存関係管理方法がない場合は、リポジトリ内の `.venv` に pip で導入し、グローバル環境を変更しない
 - 検査対象の Python package、module、test command は、設定ファイル、package 構成、既存の開発手順を調査して決定する
 
+## 適用条件
+
+Python プロジェクトの構成に従った実装と品質検査が必要な場合に、このスキルを使用する。
+想定する作業には、次の内容を含む。
+
+- Python code と package の開発または修正
+- Python code のレビュー
+- Python 開発環境の整備
+- Python 向け品質ゲートの実行または変更
+
 ## pytest と package test
 
 ### goal

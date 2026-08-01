@@ -95,15 +95,6 @@ def _readme_template(skill_name: str) -> str:
 
 仕様の正本は、[`SPEC.md`](SPEC.md) です。
 配布物は、[`dist`](dist) にあります。
-共通の導入方法は、[ルート README のインストール手順](../../README.md#インストール)を参照してください。
-
-## 呼び出し例
-
-{{{{TODO: スキル固有の適用条件と使用方法を記載する}}}}
-
-```text
-${skill_name} を使って、{{{{TODO: 具体的な依頼例を記載する}}}}
-```
 """
 
 

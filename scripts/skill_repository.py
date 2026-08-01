@@ -328,13 +328,20 @@ def _validate_skill_readme(path: Path, skill_name: str) -> list[ValidationIssue]
     required_fragments = {
         "SPEC.md": "仕様の正本へのリンクを記載してください",
         "(dist)": "配布物へのパスを記載してください",
-        f"${skill_name}": "明示的な呼び出し例を記載してください",
     }
-    return [
+    issues = [
         ValidationIssue(path, message)
         for fragment, message in required_fragments.items()
         if fragment not in content
     ]
+    if f"${skill_name}" in content:
+        issues.append(
+            ValidationIssue(
+                path,
+                "明示的な呼び出し方法はルート README だけに記載してください",
+            )
+        )
+    return issues
 
 
 def _validate_root_readme(
