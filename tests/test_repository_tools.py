@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 import tempfile
 import unittest
@@ -46,6 +47,36 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertNotIn("$sample-skill", readme)
         self.assertNotIn(".agents/skills/sample-skill", readme)
 
+        generated_content = "\n".join(
+            path.read_text(encoding="utf-8") for path in sorted(expected_files)
+        )
+        placeholder_names = set(re.findall(r"\{\{([^{}]+)\}\}", generated_content))
+        self.assertEqual(
+            {
+                "todo-completion-checks",
+                "todo-concrete-request-example",
+                "todo-expected-output-and-default-format",
+                "todo-out-of-scope-requests-and-scenarios",
+                "todo-required-inputs-constraints-and-priorities",
+                "todo-runtime-imperative-instructions",
+                "todo-runtime-rules-and-procedures",
+                "todo-short-description",
+                "todo-skill-action-heading",
+                "todo-skill-capability-and-usage-conditions",
+                "todo-skill-goal-and-success-criteria",
+                "todo-skill-usage-scenarios",
+                "todo-user-facing-display-name",
+                "todo-user-facing-skill-summary",
+            },
+            placeholder_names,
+        )
+        self.assertTrue(
+            all(
+                re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+                for name in placeholder_names
+            )
+        )
+
     def test_create_skill_refuses_invalid_name_and_existing_path(self) -> None:
         for invalid_name in ("Uppercase", "two--hyphens", "ends-", "has space"):
             with self.subTest(invalid_name=invalid_name):
@@ -63,7 +94,7 @@ class RepositoryToolsTest(unittest.TestCase):
         _, issues = validate_repository(self.repository_root)
 
         messages = [issue.message for issue in issues]
-        self.assertTrue(any("{{TODO" in message for message in messages))
+        self.assertTrue(any("未解消のプレースホルダー" in message for message in messages))
         self.assertTrue(any("収録スキル一覧" in message for message in messages))
 
     def test_completed_skill_passes_validation(self) -> None:
@@ -141,7 +172,7 @@ class RepositoryToolsTest(unittest.TestCase):
             "mkdir -p \"$TARGET_REPO/.agents/skills/$SKILL_NAME\"\n"
             "```\n\n"
             "## 使用方法\n\n"
-            "`$<skill-name>` を指定します。\n",
+            "`${{skill-name}}` を指定します。\n",
             encoding="utf-8",
         )
 
@@ -254,11 +285,11 @@ class RepositoryToolsTest(unittest.TestCase):
             "- [sample-skill](skills/sample-skill/README.md)\n\n"
             "## インストール\n\n"
             "```bash\n"
-            "python3 scripts/install_skill.py <skill-name> <target-repository>\n"
+            "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}\n"
             "```\n\n"
-            "`<target-repository>/.agents/skills/<skill-name>` へ配置します。\n\n"
+            "`{{target-repository}}/.agents/skills/{{skill-name}}` へ配置します。\n\n"
             "## 使用方法\n\n"
-            "`$<skill-name>` を指定します。\n",
+            "`${{skill-name}}` を指定します。\n",
             encoding="utf-8",
         )
         (skill_root / "SPEC.md").write_text(

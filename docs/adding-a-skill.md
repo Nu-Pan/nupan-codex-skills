@@ -25,7 +25,7 @@
 リポジトリのルートで生成コマンドを実行する。
 
 ```bash
-python3 scripts/create_skill.py <skill-name>
+python3 scripts/create_skill.py {{skill-name}}
 ```
 
 生成コマンドは、既存のディレクトリを上書きしない。
@@ -33,8 +33,9 @@ python3 scripts/create_skill.py <skill-name>
 
 ## 3. 仕様を記載する
 
-最初に `skills/<skill-name>/SPEC.md` を編集する。
-雛形の `{{TODO: ...}}` をすべて具体的な仕様へ置き換える。
+最初に `skills/{{skill-name}}/SPEC.md` を編集する。
+`todo-` で始まる雛形のプレースホルダーを、すべて具体的な仕様へ置き換える。
+たとえば、`{{todo-skill-goal-and-success-criteria}}` をスキルの目的と成功条件へ置き換える。
 
 仕様には、目的、適用条件、実行時の規則、出力、検証条件を記載する。
 重要な規則には、必要に応じて根拠や前提も記載する。
@@ -48,12 +49,12 @@ python3 scripts/create_skill.py <skill-name>
 - frontmatter の `name` がスキル名と一致している。
 - `description` に機能と適用条件が記載されている。
 - 本文に、実行時に従う規則だけが命令形で記載されている。
-- `{{TODO: ...}}` が残っていない。
+- `todo-` で始まるプレースホルダーが残っていない。
 
 `agents/openai.yaml` では、次の点を確認する。
 
 - 表示名と短い説明がスキルの内容を表している。
-- `default_prompt` に `$<skill-name>` が含まれている。
+- `default_prompt` に `${{skill-name}}` が含まれている。
 - 暗黙の呼び出しなど、必要な設定だけが追加されている。
 
 実行時リソースが必要な場合だけ、`dist/` の直下へ対応するディレクトリを追加する。
@@ -65,7 +66,7 @@ python3 scripts/create_skill.py <skill-name>
 
 ## 5. 概要を記載する
 
-`skills/<skill-name>/README.md` に、概要、仕様と配布物へのリンクを記載する。
+`skills/{{skill-name}}/README.md` に、概要、仕様と配布物へのリンクを記載する。
 README に記載しない情報は、次のとおりである。
 
 - 使用方法
@@ -85,7 +86,7 @@ README に記載しない情報は、次のとおりである。
 対象スキルを指定して、構造とメタデータを検証する。
 
 ```bash
-python3 scripts/validate_skills.py <skill-name>
+python3 scripts/validate_skills.py {{skill-name}}
 ```
 
 雛形の未確定項目や、ルート README への追加漏れも検出される。

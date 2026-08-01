@@ -24,9 +24,20 @@
 
 同じスキル名を、次の場所で使用する。
 
-- `skills/<skill-name>` のディレクトリ名
+- `skills/{{skill-name}}` のディレクトリ名
 - `SKILL.md` の `name`
-- `agents/openai.yaml` の `default_prompt` に含める `$<skill-name>`
+- `agents/openai.yaml` の `default_prompt` に含める `${{skill-name}}`
+
+## プレースホルダー
+
+プレースホルダーは、二重波括弧で名前を囲んだ `{{placeholder-name}}` の形式で記載する。
+名前には、意味を表す英単語を使用する。
+名前は、小文字の英字、数字、単独のハイフンだけで構成する。
+先頭と末尾にハイフンを置かない。
+ハイフンを連続させない。
+
+雛形の未確定項目には、`todo-` で始まる名前を使用する。
+たとえば、スキルの目的と成功条件の未確定項目には、`{{todo-skill-goal-and-success-criteria}}` を使用する。
 
 ## ディレクトリ構造
 
@@ -34,7 +45,7 @@
 標準構造を次に示す。
 
 ```text
-skills/<skill-name>/
+skills/{{skill-name}}/
 ├── README.md
 ├── SPEC.md
 ├── AGENTS.md                     # スキル固有の保守規則がある場合だけ配置する
@@ -79,7 +90,7 @@ README 間で共通する利用情報と保守情報は、このファイルだ�
 
 - リポジトリの概要
 - 収録スキルへのリンクと概要
-- `scripts/install_skill.py` による `.agents/skills/<skill-name>` への共通インストール方法
+- `scripts/install_skill.py` による `.agents/skills/{{skill-name}}` への共通インストール方法
 - スキルに共通する呼び出し方法
 - リポジトリの開発方法と検証方法
 
@@ -131,7 +142,7 @@ frontmatter は、次の条件を満たす。
 
 - `display_name`
 - 25 文字以上 64 文字以内の `short_description`
-- `$<skill-name>` を含む `default_prompt`
+- `${{skill-name}}` を含む `default_prompt`
 
 アイコン、ブランド色、依存ツール、暗黙の呼び出し設定は、スキルに必要な場合だけ追加する。
 `SKILL.md` を変更した場合は、表示情報と呼び出し設定が一致しているか確認する。
@@ -161,14 +172,14 @@ frontmatter は、次の条件を満たす。
 正規のインストールコマンドを次に示す。
 
 ```bash
-python3 scripts/install_skill.py <skill-name> <target-repository>
+python3 scripts/install_skill.py {{skill-name}} {{target-repository}}
 ```
 
-`<target-repository>` には、既存のディレクトリを指定する。
+`{{target-repository}}` には、既存のディレクトリを指定する。
 相対パスと絶対パスのどちらも使用できる。
 Git リポジトリであることは要求しない。
 
-スクリプトは、配布物を `<target-repository>/.agents/skills/<skill-name>/` へインストールする。
+スクリプトは、配布物を `{{target-repository}}/.agents/skills/{{skill-name}}/` へインストールする。
 `.agents/skills` がない場合は作成する。
 
 同名スキルがすでに存在する場合は、配布物全体を置き換える。
@@ -200,7 +211,7 @@ Git リポジトリであることは要求しない。
 変更したスキルは、完了前にリポジトリ検査を通す。
 
 ```bash
-python3 scripts/validate_skills.py <skill-name> [<skill-name> ...]
+python3 scripts/validate_skills.py {{skill-name}} [{{skill-name}} ...]
 ```
 
 共通仕様またはリポジトリツールを変更した場合は、全スキルとツールの自動テストを検証する。

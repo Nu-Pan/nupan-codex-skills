@@ -18,7 +18,7 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 コマンドの書式を次に示します。
 
 ```bash
-python3 scripts/install_skill.py <skill-name> <target-repository>
+python3 scripts/install_skill.py {{skill-name}} {{target-repository}}
 ```
 
 `japanese-writing-skill` をインストールする例を次に示します。
@@ -29,7 +29,7 @@ python3 scripts/install_skill.py japanese-writing-skill /absolute/path/to/reposi
 
 導入先には、既存のディレクトリを相対パスまたは絶対パスで指定できます。
 Git リポジトリであることは必須ではありません。
-配布物は、`<target-repository>/.agents/skills/<skill-name>/` に配置されます。
+配布物は、`{{target-repository}}/.agents/skills/{{skill-name}}/` に配置されます。
 
 同名スキルがすでに存在する場合は、配布物全体を置き換えます。
 導入先で加えた変更や、旧版だけに存在するファイルは残りません。
@@ -40,7 +40,7 @@ Git リポジトリであることは必須ではありません。
 スキルを明示的に呼び出す場合は、依頼にスキル名を含めます。
 
 ```text
-$<skill-name> を使って、依頼内容を実行してください。
+${{skill-name}} を使って、依頼内容を実行してください。
 ```
 
 各スキルの概要と仕様へのリンクは、[収録スキル](#収録スキル)から各スキルの `README.md` を参照してください。
@@ -51,14 +51,14 @@ $<skill-name> を使って、依頼内容を実行してください。
 新規スキルの雛形は、スキル名を指定して生成します。
 
 ```bash
-python3 scripts/create_skill.py <skill-name>
+python3 scripts/create_skill.py {{skill-name}}
 ```
 
 編集後は、対象スキルを検証します。
 引数を省略した場合は、すべてのスキルを検証します。
 
 ```bash
-python3 scripts/validate_skills.py <skill-name> [<skill-name> ...]
+python3 scripts/validate_skills.py {{skill-name}} [{{skill-name}} ...]
 python3 scripts/validate_skills.py
 ```
 

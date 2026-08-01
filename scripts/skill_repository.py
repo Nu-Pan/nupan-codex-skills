@@ -18,7 +18,9 @@ MAX_SHORT_DESCRIPTION_LENGTH = 64
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTMATTER_KEY_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]+(.*))?$")
 INTERFACE_VALUE_PATTERN = re.compile(r"^  ([A-Za-z0-9_-]+):[ \t]+(.+)$")
-PLACEHOLDER_PATTERN = re.compile(r"\{\{TODO(?::[^}]*)?\}\}")
+UNRESOLVED_PLACEHOLDER_PATTERN = re.compile(
+    r"\{\{todo-[a-z0-9]+(?:-[a-z0-9]+)*\}\}"
+)
 
 REQUIRED_RELATIVE_FILES = (
     Path("README.md"),
@@ -174,8 +176,13 @@ def _validate_text_files(paths: Iterable[Path]) -> list[ValidationIssue]:
         assert content is not None
         if not content.strip():
             issues.append(ValidationIssue(path, "ファイルを空にできません"))
-        if PLACEHOLDER_PATTERN.search(content):
-            issues.append(ValidationIssue(path, "未解消の {{TODO: ...}} が残っています"))
+        if UNRESOLVED_PLACEHOLDER_PATTERN.search(content):
+            issues.append(
+                ValidationIssue(
+                    path,
+                    "todo- で始まる未解消のプレースホルダーが残っています",
+                )
+            )
     return issues
 
 
@@ -361,11 +368,11 @@ def _validate_root_readme(
     ]
 
     required_fragments = {
-        "python3 scripts/install_skill.py <skill-name> <target-repository>": (
+        "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}": (
             "共通インストール手順に正規のスクリプト呼び出しを記載してください"
         ),
-        ".agents/skills/<skill-name>": "共通インストール先を記載してください",
-        "$<skill-name>": "スキルに共通する呼び出し方法を記載してください",
+        ".agents/skills/{{skill-name}}": "共通インストール先を記載してください",
+        "${{skill-name}}": "スキルに共通する呼び出し方法を記載してください",
     }
     issues.extend(
         ValidationIssue(path, message)

@@ -57,41 +57,41 @@ def _spec_template(skill_name: str) -> str:
 
 ## 目的
 
-{{{{TODO: スキルが実現する結果と成功条件を記載する}}}}
+{{{{todo-skill-goal-and-success-criteria}}}}
 
 このファイルは、`{skill_name}` のスキル仕様の正本である。
 実行時仕様を変更するときは、先にこのファイルを変更する。
 
 ## 適用条件
 
-{{{{TODO: スキルを使用する依頼や状況を記載する}}}}
+{{{{todo-skill-usage-scenarios}}}}
 
 ## 対象外
 
-{{{{TODO: スキルが扱わない依頼や状況を記載する}}}}
+{{{{todo-out-of-scope-requests-and-scenarios}}}}
 
 ## 入力と前提
 
-{{{{TODO: 必要な入力、制約、優先順位を記載する}}}}
+{{{{todo-required-inputs-constraints-and-priorities}}}}
 
 ## 実行時の規則
 
-{{{{TODO: エージェントが従う規則と手順を記載する}}}}
+{{{{todo-runtime-rules-and-procedures}}}}
 
 ## 出力
 
-{{{{TODO: 期待する出力と既定形式を記載する}}}}
+{{{{todo-expected-output-and-default-format}}}}
 
 ## 検証
 
-{{{{TODO: 完了前に確認する条件を記載する}}}}
+{{{{todo-completion-checks}}}}
 """
 
 
 def _readme_template(skill_name: str) -> str:
     return f"""# {skill_name}
 
-{{{{TODO: 利用者向けにスキルの概要を記載する}}}}
+{{{{todo-user-facing-skill-summary}}}}
 
 仕様の正本は、[`SPEC.md`](SPEC.md) です。
 配布物は、[`dist`](dist) にあります。
@@ -101,20 +101,20 @@ def _readme_template(skill_name: str) -> str:
 def _skill_template(skill_name: str) -> str:
     return f"""---
 name: {skill_name}
-description: {{{{TODO: スキルの機能と適用条件を記載する}}}}
+description: {{{{todo-skill-capability-and-usage-conditions}}}}
 ---
 
-# {{{{TODO: スキルの動作を表す見出しを記載する}}}}
+# {{{{todo-skill-action-heading}}}}
 
-{{{{TODO: 実行時にエージェントが従う規則を命令形で記載する}}}}
+{{{{todo-runtime-imperative-instructions}}}}
 """
 
 
 def _openai_template(skill_name: str) -> str:
     return f'''interface:
-  display_name: "{{{{TODO: 利用者向けの表示名を記載する}}}}"
-  short_description: "{{{{TODO: 25〜64 文字で短い説明を記載する}}}}"
-  default_prompt: "${skill_name} を使って、{{{{TODO: 具体的な依頼例を記載する}}}}"
+  display_name: "{{{{todo-user-facing-display-name}}}}"
+  short_description: "{{{{todo-short-description}}}}"
+  default_prompt: "${skill_name} を使って、{{{{todo-concrete-request-example}}}}"
 '''
 
 
@@ -129,7 +129,7 @@ def main() -> int:
         parser.exit(1, f"エラー: {error}\n")
 
     print(f"スキルの雛形を生成しました: {target.relative_to(REPOSITORY_ROOT)}")
-    print("SPEC.md から編集し、{{TODO: ...}} をすべて解消してください。")
+    print("SPEC.md から編集し、todo- で始まるプレースホルダーをすべて解消してください。")
     print(f"完了前に実行: python3 scripts/validate_skills.py {args.skill_name}")
     return 0
 

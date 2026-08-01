@@ -48,10 +48,10 @@ description: Python プロジェクトの開発、修正、レビュー、開発
 完了前には、現在の worktree に対して first-party Python code 全体の書き換えなしの Ruff、project が定める全対象の mypy、full test を、次に相当する command で fresh に実行する。
 
 ```bash
-python -m ruff check <first-party targets>
-python -m ruff format --check <first-party targets>
-python -m mypy <first-party targets or packages>
-PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest <project full-test arguments>
+python -m ruff check {{first-party-targets}}
+python -m ruff format --check {{first-party-targets}}
+python -m mypy {{first-party-targets-or-packages}}
+PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest {{project-full-test-arguments}}
 ```
 
 - pytest を使用する場合は pytest-timeout を full test でも有効にする。project 固有の test runner を使用する場合も、その runner が起動する Python process へ development mode と `ResourceWarning` のエラー化を適用する。
