@@ -356,9 +356,10 @@ def _validate_root_readme(
     ]
 
     required_fragments = {
-        "SKILL_NAME=": "共通インストール手順にスキル名の指定を記載してください",
-        "TARGET_REPO=": "共通インストール手順に導入先の指定を記載してください",
-        ".agents/skills/$SKILL_NAME": "共通インストール先を記載してください",
+        "python3 scripts/install_skill.py <skill-name> <target-repository>": (
+            "共通インストール手順に正規のスクリプト呼び出しを記載してください"
+        ),
+        ".agents/skills/<skill-name>": "共通インストール先を記載してください",
         "$<skill-name>": "スキルに共通する呼び出し方法を記載してください",
     }
     issues.extend(

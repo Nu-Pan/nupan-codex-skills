@@ -111,6 +111,31 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertIn("共通インストール先を記載してください", messages)
         self.assertIn("スキルに共通する呼び出し方法を記載してください", messages)
 
+    def test_manual_install_commands_do_not_satisfy_root_readme(self) -> None:
+        self._create_completed_skill()
+        (self.repository_root / "README.md").write_text(
+            "# Test skills\n\n"
+            "- [sample-skill](skills/sample-skill/README.md)\n\n"
+            "## インストール\n\n"
+            "```bash\n"
+            "SKILL_NAME=sample-skill\n"
+            "TARGET_REPO=/absolute/path/to/repository\n"
+            "mkdir -p \"$TARGET_REPO/.agents/skills/$SKILL_NAME\"\n"
+            "```\n\n"
+            "## 使用方法\n\n"
+            "`$<skill-name>` を指定します。\n",
+            encoding="utf-8",
+        )
+
+        _, issues = validate_repository(self.repository_root)
+
+        messages = [issue.message for issue in issues]
+        self.assertIn(
+            "共通インストール手順に正規のスクリプト呼び出しを記載してください",
+            messages,
+        )
+        self.assertIn("共通インストール先を記載してください", messages)
+
     def test_missing_file_and_mismatched_name_are_reported(self) -> None:
         skill_root = self._create_completed_skill()
         (skill_root / "SPEC.md").unlink()
@@ -202,10 +227,9 @@ class RepositoryToolsTest(unittest.TestCase):
             "- [sample-skill](skills/sample-skill/README.md)\n\n"
             "## インストール\n\n"
             "```bash\n"
-            "SKILL_NAME=sample-skill\n"
-            "TARGET_REPO=/absolute/path/to/repository\n"
-            "mkdir -p \"$TARGET_REPO/.agents/skills/$SKILL_NAME\"\n"
+            "python3 scripts/install_skill.py <skill-name> <target-repository>\n"
             "```\n\n"
+            "`<target-repository>/.agents/skills/<skill-name>` へ配置します。\n\n"
             "## 使用方法\n\n"
             "`$<skill-name>` を指定します。\n",
             encoding="utf-8",

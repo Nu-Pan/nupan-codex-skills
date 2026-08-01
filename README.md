@@ -13,20 +13,26 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 
 ## インストール
 
-全スキルを共通の手順でインストールできます。
-このリポジトリのルートで、スキル名と導入先リポジトリの絶対パスを指定します。
+全スキルは、共通インストールスクリプトでインストールできます。
+このリポジトリのルートで、スキル名と導入先ディレクトリを指定します。
+コマンドの書式を次に示します。
 
 ```bash
-SKILL_NAME=japanese-writing-skill
-TARGET_REPO=/absolute/path/to/repository
-
-mkdir -p "$TARGET_REPO/.agents/skills/$SKILL_NAME"
-cp -R "skills/$SKILL_NAME/dist/$SKILL_NAME/." \
-  "$TARGET_REPO/.agents/skills/$SKILL_NAME/"
+python3 scripts/install_skill.py <skill-name> <target-repository>
 ```
 
-別のスキルをインストールする場合は、`SKILL_NAME` を変更して同じコマンドを実行します。
-この手順により、配布物が `<target-repository>/.agents/skills/<skill-name>/` に配置されます。
+`japanese-writing-skill` をインストールする例を次に示します。
+
+```bash
+python3 scripts/install_skill.py japanese-writing-skill /absolute/path/to/repository
+```
+
+導入先には、既存のディレクトリを相対パスまたは絶対パスで指定できます。
+Git リポジトリであることは必須ではありません。
+配布物は、`<target-repository>/.agents/skills/<skill-name>/` に配置されます。
+
+同名スキルがすでに存在する場合は、配布物全体を置き換えます。
+導入先で加えた変更や、旧版だけに存在するファイルは残りません。
 
 ## 使用方法
 
