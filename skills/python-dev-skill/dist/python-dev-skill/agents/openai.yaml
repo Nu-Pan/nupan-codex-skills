@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python Tooling and Quality Gates"
+  short_description: "Apply Python-specific tooling and quality gates"
+  default_prompt: "Use $python-dev-skill to implement this Python change and run the appropriate Ruff, mypy, pytest-timeout, and ResourceWarning checks."

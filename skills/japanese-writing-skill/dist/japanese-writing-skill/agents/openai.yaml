@@ -1,0 +1,7 @@
+interface:
+  display_name: "日本語の技術文書を作成・改善"
+  short_description: "日本語の技術文書を作成・改訂し、要点が先に伝わる文章へ整える"
+  default_prompt: "$japanese-writing-skill を使って、日本語の技術文書を作成または改訂してください。"
+
+policy:
+  allow_implicit_invocation: true
