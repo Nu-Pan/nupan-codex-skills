@@ -23,8 +23,8 @@ PLACEHOLDER_PATTERN = re.compile(r"\{\{TODO(?::[^}]*)?\}\}")
 REQUIRED_RELATIVE_FILES = (
     Path("README.md"),
     Path("SPEC.md"),
-    Path("dist") / "{skill_name}" / "SKILL.md",
-    Path("dist") / "{skill_name}" / "agents" / "openai.yaml",
+    Path("dist") / "SKILL.md",
+    Path("dist") / "agents" / "openai.yaml",
 )
 FORBIDDEN_DISTRIBUTION_FILES = {"README.md", "SPEC.md", "AGENTS.md", "LICENSE"}
 
@@ -115,17 +115,15 @@ def validate_skill(repository_root: Path, skill_name: str) -> list[ValidationIss
         if not required_file.is_file():
             issues.append(ValidationIssue(required_file, "必須ファイルがありません"))
 
-    distribution_container = skill_root / "dist"
-    distribution_root = distribution_container / skill_name
-    if distribution_container.is_dir():
-        for entry in sorted(distribution_container.iterdir(), key=lambda path: path.name):
-            if entry.name != skill_name or not entry.is_dir():
-                issues.append(
-                    ValidationIssue(
-                        entry,
-                        "dist 直下には同名の配布用ディレクトリだけを置いてください",
-                    )
-                )
+    distribution_root = skill_root / "dist"
+    legacy_distribution_root = distribution_root / skill_name
+    if legacy_distribution_root.exists() or legacy_distribution_root.is_symlink():
+        issues.append(
+            ValidationIssue(
+                legacy_distribution_root,
+                "配布物は dist 直下へ配置し、同名の配布用ディレクトリを追加しないでください",
+            )
+        )
 
     if distribution_root.is_dir():
         for entry in distribution_root.rglob("*"):
@@ -329,7 +327,7 @@ def _validate_skill_readme(path: Path, skill_name: str) -> list[ValidationIssue]
 
     required_fragments = {
         "SPEC.md": "仕様の正本へのリンクを記載してください",
-        f"dist/{skill_name}": "配布物へのパスを記載してください",
+        "(dist)": "配布物へのパスを記載してください",
         f"${skill_name}": "明示的な呼び出し例を記載してください",
     }
     return [

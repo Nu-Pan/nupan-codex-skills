@@ -31,7 +31,6 @@ class InstallSkillTest(unittest.TestCase):
             / "skills"
             / self.skill_name
             / "dist"
-            / self.skill_name
         )
         (self.distribution_root / "agents").mkdir(parents=True)
         (self.distribution_root / "references").mkdir()

@@ -14,7 +14,7 @@ Python プロジェクトの構成に合わせて、実装と品質検査を行�
 - Python development mode と `ResourceWarning` 検査
 
 実行時仕様の正本は、[`SPEC.md`](SPEC.md) です。
-配布物は、[`dist/python-dev-skill`](dist/python-dev-skill) にあります。
+配布物は、[`dist`](dist) にあります。
 共通の導入方法は、[ルート README のインストール手順](../../README.md#インストール)を参照してください。
 
 ## 呼び出し例

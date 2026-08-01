@@ -31,9 +31,7 @@ def install_skill(
         raise ValueError(name_error)
 
     repository_root = repository_root.resolve()
-    distribution_root = (
-        repository_root / "skills" / skill_name / "dist" / skill_name
-    )
+    distribution_root = repository_root / "skills" / skill_name / "dist"
     if not distribution_root.is_dir():
         raise FileNotFoundError(f"スキルの配布物がありません: {distribution_root}")
 

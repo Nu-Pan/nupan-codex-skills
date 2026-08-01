@@ -25,7 +25,6 @@
 同じスキル名を、次の場所で使用する。
 
 - `skills/<skill-name>` のディレクトリ名
-- `dist/<skill-name>` のディレクトリ名
 - `SKILL.md` の `name`
 - `agents/openai.yaml` の `default_prompt` に含める `$<skill-name>`
 
@@ -40,17 +39,17 @@ skills/<skill-name>/
 ├── SPEC.md
 ├── AGENTS.md                     # スキル固有の保守規則がある場合だけ配置する
 └── dist/
-    └── <skill-name>/
-        ├── SKILL.md
-        ├── agents/
-        │   └── openai.yaml
-        ├── scripts/              # 実行時に必要な場合だけ配置する
-        ├── references/           # 実行時に必要な場合だけ配置する
-        └── assets/               # 実行時に必要な場合だけ配置する
+    ├── SKILL.md
+    ├── agents/
+    │   └── openai.yaml
+    ├── scripts/                  # 実行時に必要な場合だけ配置する
+    ├── references/               # 実行時に必要な場合だけ配置する
+    └── assets/                   # 実行時に必要な場合だけ配置する
 ```
 
 `skills/` の直下には、スキルのディレクトリだけを置く。
-`dist/` の直下には、同じ名前の配布用ディレクトリだけを置く。
+`dist/` の直下には、配布物を直接配置する。
+スキル名と同じ配布用ディレクトリを `dist/` の下へ追加しない。
 
 ## ファイルの責務
 

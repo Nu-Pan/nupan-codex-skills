@@ -30,14 +30,11 @@ class RepositoryToolsTest(unittest.TestCase):
         expected_files = {
             skill_root / "README.md",
             skill_root / "SPEC.md",
-            skill_root / "dist" / "sample-skill" / "SKILL.md",
-            skill_root
-            / "dist"
-            / "sample-skill"
-            / "agents"
-            / "openai.yaml",
+            skill_root / "dist" / "SKILL.md",
+            skill_root / "dist" / "agents" / "openai.yaml",
         }
         self.assertTrue(all(path.is_file() for path in expected_files))
+        self.assertFalse((skill_root / "dist" / "sample-skill").exists())
         self.assertFalse((skill_root / "AGENTS.md").exists())
 
         readme = (skill_root / "README.md").read_text(encoding="utf-8")
@@ -139,7 +136,7 @@ class RepositoryToolsTest(unittest.TestCase):
     def test_missing_file_and_mismatched_name_are_reported(self) -> None:
         skill_root = self._create_completed_skill()
         (skill_root / "SPEC.md").unlink()
-        skill_file = skill_root / "dist" / "sample-skill" / "SKILL.md"
+        skill_file = skill_root / "dist" / "SKILL.md"
         skill_file.write_text(
             skill_file.read_text(encoding="utf-8").replace(
                 "name: sample-skill", "name: another-skill"
@@ -155,18 +152,27 @@ class RepositoryToolsTest(unittest.TestCase):
 
     def test_forbidden_distribution_file_is_reported(self) -> None:
         skill_root = self._create_completed_skill()
-        forbidden_file = skill_root / "dist" / "sample-skill" / "README.md"
+        forbidden_file = skill_root / "dist" / "README.md"
         forbidden_file.write_text("not distributable\n", encoding="utf-8")
 
         _, issues = validate_repository(self.repository_root)
 
         self.assertTrue(any("保守用ファイル" in issue.message for issue in issues))
 
+    def test_legacy_distribution_directory_is_reported(self) -> None:
+        skill_root = self._create_completed_skill()
+        legacy_distribution_root = skill_root / "dist" / "sample-skill"
+        legacy_distribution_root.mkdir()
+
+        _, issues = validate_repository(self.repository_root)
+
+        self.assertTrue(
+            any("同名の配布用ディレクトリ" in issue.message for issue in issues)
+        )
+
     def test_invalid_openai_metadata_is_reported(self) -> None:
         skill_root = self._create_completed_skill()
-        openai_file = (
-            skill_root / "dist" / "sample-skill" / "agents" / "openai.yaml"
-        )
+        openai_file = skill_root / "dist" / "agents" / "openai.yaml"
         openai_file.write_text(
             '''interface:
   display_name: "Sample Skill"
@@ -184,7 +190,7 @@ class RepositoryToolsTest(unittest.TestCase):
 
     def test_empty_required_metadata_is_reported(self) -> None:
         skill_root = self._create_completed_skill()
-        distribution_root = skill_root / "dist" / "sample-skill"
+        distribution_root = skill_root / "dist"
         skill_file = distribution_root / "SKILL.md"
         skill_file.write_text(
             skill_file.read_text(encoding="utf-8").replace(
@@ -244,11 +250,11 @@ class RepositoryToolsTest(unittest.TestCase):
             "# sample-skill\n\n"
             "反復可能なサンプル処理を実行します。\n\n"
             "仕様は [SPEC.md](SPEC.md) にあります。\n"
-            "配布物は [dist/sample-skill](dist/sample-skill) にあります。\n\n"
+            "配布物は [dist](dist) にあります。\n\n"
             "`$sample-skill` を指定して呼び出します。\n",
             encoding="utf-8",
         )
-        distribution_root = skill_root / "dist" / skill_name
+        distribution_root = skill_root / "dist"
         (distribution_root / "SKILL.md").write_text(
             "---\n"
             "name: sample-skill\n"

@@ -41,7 +41,7 @@ python3 scripts/create_skill.py <skill-name>
 
 ## 4. 配布物を実装する
 
-`SPEC.md` の内容を、配布用の `SKILL.md` と `agents/openai.yaml` へ反映する。
+`SPEC.md` の内容を、配布用の `dist/SKILL.md` と `dist/agents/openai.yaml` へ反映する。
 
 `SKILL.md` では、次の点を確認する。
 
@@ -56,7 +56,7 @@ python3 scripts/create_skill.py <skill-name>
 - `default_prompt` に `$<skill-name>` が含まれている。
 - 暗黙の呼び出しなど、必要な設定だけが追加されている。
 
-実行時リソースが必要な場合だけ、配布物へ対応するディレクトリを追加する。
+実行時リソースが必要な場合だけ、`dist/` の直下へ対応するディレクトリを追加する。
 追加できるリソースの種類を次に示す。
 
 - `scripts/`

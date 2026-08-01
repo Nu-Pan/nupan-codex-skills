@@ -4,7 +4,7 @@ AI が日本語の技術文書を作成または変更するときに使用す�
 読み手が要点と情報の関係を速やかに把握できる文章を作ります。
 
 文章規則の正本は、[`SPEC.md`](SPEC.md) です。
-配布物は、[`dist/japanese-writing-skill`](dist/japanese-writing-skill) にあります。
+配布物は、[`dist`](dist) にあります。
 共通の導入方法は、[ルート README のインストール手順](../../README.md#インストール)を参照してください。
 
 ## 適用条件

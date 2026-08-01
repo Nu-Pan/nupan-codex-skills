@@ -38,7 +38,7 @@ def create_skill(repository_root: Path, skill_name: str) -> Path:
 
 
 def _write_scaffold(skill_root: Path, skill_name: str) -> None:
-    distribution_root = skill_root / "dist" / skill_name
+    distribution_root = skill_root / "dist"
     agents_root = distribution_root / "agents"
     agents_root.mkdir(parents=True)
 
@@ -94,7 +94,7 @@ def _readme_template(skill_name: str) -> str:
 {{{{TODO: 利用者向けにスキルの概要を記載する}}}}
 
 仕様の正本は、[`SPEC.md`](SPEC.md) です。
-配布物は、[`dist/{skill_name}`](dist/{skill_name}) にあります。
+配布物は、[`dist`](dist) にあります。
 共通の導入方法は、[ルート README のインストール手順](../../README.md#インストール)を参照してください。
 
 ## 呼び出し例
