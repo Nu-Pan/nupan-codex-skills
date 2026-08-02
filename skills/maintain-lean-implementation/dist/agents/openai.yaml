@@ -1,0 +1,4 @@
+interface:
+  display_name: "簡潔で保守しやすい実装を維持"
+  short_description: "重複・旧実装・不要な公開面を抑え、必要な実装だけを保つ"
+  default_prompt: "$maintain-lean-implementation を使って、現行仕様に必要な実装だけが残るように変更してください。"

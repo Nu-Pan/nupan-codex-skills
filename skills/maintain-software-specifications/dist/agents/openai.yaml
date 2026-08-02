@@ -1,0 +1,4 @@
+interface:
+  display_name: "ソフトウェア正本仕様を保守"
+  short_description: "重要な人間意図を簡潔に定義し、整合した正本仕様を保守する"
+  default_prompt: "$maintain-software-specifications を使って、正本仕様を簡潔かつ整合的に更新してください。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "仕様と実装の適合性をレビュー"
+  short_description: "仕様の矛盾と実装不整合を、確認済みの根拠だけで判定する"
+  default_prompt: "$review-specification-conformance を使って、正本仕様と実装の適合性をレビューしてください。"
