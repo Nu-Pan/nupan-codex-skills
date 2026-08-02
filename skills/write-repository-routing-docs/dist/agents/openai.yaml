@@ -1,4 +1,0 @@
-interface:
-  display_name: "リポジトリのルーティング文書を作成"
-  short_description: "対象本文に基づき、読むべきファイルへ案内する索引を作成する"
-  default_prompt: "$write-repository-routing-docs を使って、対象本文に基づくルーティング文書を作成してください。"
