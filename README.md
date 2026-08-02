@@ -5,6 +5,7 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 
 全スキルに共通する構造と保守方法は、[`docs/skill-repository-spec.md`](docs/skill-repository-spec.md) に定義しています。
 新規スキルは、[`docs/adding-a-skill.md`](docs/adding-a-skill.md) の手順で追加します。
+開発環境の構築方法とテストの実行規約は、[`docs/development-environment.md`](docs/development-environment.md) に定義しています。
 
 ## 収録スキル
 
@@ -53,6 +54,14 @@ ${{skill-name}} を使って、依頼内容を実行してください。
 
 ## 開発
 
+初回は、プロジェクトローカルの Python 環境を作成して開発依存をインストールします。
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements-dev.txt
+```
+
 新規スキルの雛形は、スキル名を指定して生成します。
 
 ```bash
@@ -60,15 +69,18 @@ python3 scripts/create_skill.py {{skill-name}}
 ```
 
 編集後は、対象スキルを検証します。
-引数を省略した場合は、すべてのスキルを検証します。
+対象スキルに自動テストがある場合は、pytest も実行します。
 
 ```bash
+python3 -m pytest skills/{{skill-name}}/tests
 python3 scripts/validate_skills.py {{skill-name}} [{{skill-name}} ...]
-python3 scripts/validate_skills.py
 ```
 
-共通ツールを変更した場合は、自動テストも実行します。
+リポジトリ全体へ影響する変更では、全スキルと全テストを検証します。
 
 ```bash
-python3 -m unittest discover -s tests -v
+python3 scripts/validate_skills.py
+python3 -m pytest tests skills
 ```
+
+対象スキルに `tests/` がない場合の扱いは、[スキル開発環境の規約](docs/development-environment.md)を参照してください。

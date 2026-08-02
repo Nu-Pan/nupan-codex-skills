@@ -49,6 +49,9 @@ skills/{{skill-name}}/
 ├── README.md
 ├── SPEC.md
 ├── AGENTS.md                     # スキル固有の保守規則がある場合だけ配置する
+├── tests/                        # スキル固有の自動テストがある場合だけ配置する
+│   ├── conftest.py               # 共通 fixture がある場合だけ配置する
+│   └── test_*.py
 └── dist/
     ├── SKILL.md
     ├── agents/
@@ -116,6 +119,18 @@ README に記載しない情報は、次のとおりである。
 
 スキル固有の保守規則がある場合だけ、`AGENTS.md` を配置する。
 ルート規則やこの共通仕様を繰り返さない。
+
+### `tests/`
+
+`tests/` は、スキル固有の自動テストを配置する保守用ディレクトリとする。
+実行時スクリプトや決定的に検証できる振る舞いがある場合に配置する。
+テストには pytest を使用する。
+
+スキル固有のテストは、`skills/{{skill-name}}/tests/` だけを指定して実行できる状態にする。
+リポジトリツール自体のテストは、ルートの `tests/` に配置する。
+どちらのテストも配布物へ含めない。
+
+開発環境の構築方法とテストの実行規約は、[`development-environment.md`](development-environment.md) に定義する。
 
 ### `SKILL.md`
 
@@ -200,25 +215,32 @@ Git リポジトリであることは要求しない。
 4. `SPEC.md` を新規作成または変更する。
 5. `SPEC.md` を `SKILL.md` と実行時リソースへ反映する。
 6. `agents/openai.yaml` とスキル別 `README.md` を実装内容へ合わせる。
-7. ルート `README.md` の収録スキル一覧を更新する。
-8. リポジトリ検査を実行する。
-9. 複雑なスキルでは、現実的な依頼を使って動作を検証する。
+7. 自動化できる振る舞いがある場合は、スキル固有のテストを追加または変更する。
+8. ルート `README.md` の収録スキル一覧を更新する。
+9. スキル固有のテストとリポジトリ検査を実行する。
+10. 複雑なスキルでは、現実的な依頼を使って動作を検証する。
 
 仕様変更を伴わない誤字修正などでは、`SPEC.md` の変更を省略できる。
 
 ## 検証
 
 変更したスキルは、完了前にリポジトリ検査を通す。
+スキル固有のテストがある場合は、そのテストも pytest で実行する。
 
 ```bash
+python3 -m pytest skills/{{skill-name}}/tests
 python3 scripts/validate_skills.py {{skill-name}} [{{skill-name}} ...]
 ```
 
-共通仕様またはリポジトリツールを変更した場合は、全スキルとツールの自動テストを検証する。
+`tests/` がないスキルでは、対象スキルの pytest コマンドを省略する。
+テストの有無にかかわらず、リポジトリ検査は省略しない。
+
+リポジトリ全体へ影響する変更では、全スキルとツールの自動テストを検証する。
 
 ```bash
 python3 scripts/validate_skills.py
-python3 -m unittest discover -s tests -v
+python3 -m pytest tests skills
 ```
 
+環境構築、複数スキルの指定、失敗時の扱いには、[`development-environment.md`](development-environment.md) の規約を適用する。
 検査を通すために、実行時に必要な規則やリソースを削除してはならない。

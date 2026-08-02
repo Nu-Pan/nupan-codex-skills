@@ -6,6 +6,7 @@
 仕様を先に確定し、配布物へ反映してから検証する。
 
 共通規則の正本は、[`skill-repository-spec.md`](skill-repository-spec.md) である。
+開発環境の構築方法と pytest の実行規約は、[`development-environment.md`](development-environment.md) に従う。
 
 ## 1. スキルを定義する
 
@@ -64,7 +65,21 @@ python3 scripts/create_skill.py {{skill-name}}
 - `references/`
 - `assets/`
 
-## 5. 概要を記載する
+## 5. テストを実装する
+
+機械的に結果を判定できる振る舞いがある場合は、`skills/{{skill-name}}/tests/` に pytest のテストを追加する。
+実行時スクリプトを追加した場合は、その主要な成功条件と失敗条件を検証する。
+
+対象スキルのテストは、リポジトリのルートから単独で実行できる状態にする。
+
+```bash
+python3 -m pytest skills/{{skill-name}}/tests
+```
+
+安定して自動判定できる振る舞いがない場合は、空の `tests/` を作成しない。
+この場合は、実際の利用者が行う形式の依頼で動作を検証する。
+
+## 6. 概要を記載する
 
 `skills/{{skill-name}}/README.md` に、概要、仕様と配布物へのリンクを記載する。
 README に記載しない情報は、次のとおりである。
@@ -81,7 +96,7 @@ README に記載しない情報は、次のとおりである。
 スキル固有の保守規則がある場合だけ、スキルの直下に `AGENTS.md` を追加する。
 共通仕様を `AGENTS.md` へ複製しない。
 
-## 6. 検証する
+## 7. 検証する
 
 対象スキルを指定して、構造とメタデータを検証する。
 
