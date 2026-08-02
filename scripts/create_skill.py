@@ -120,7 +120,10 @@ def _openai_template(skill_name: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="新しいスキルの雛形を生成します。")
-    parser.add_argument("skill_name", help="小文字、数字、ハイフンからなるスキル名")
+    parser.add_argument(
+        "skill_name",
+        help="小文字、数字、ハイフンからなるスキル名（all を除く）",
+    )
     args = parser.parse_args()
 
     try:

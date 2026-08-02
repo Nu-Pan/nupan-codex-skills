@@ -14,6 +14,7 @@ MAX_SKILL_NAME_LENGTH = 64
 MAX_DESCRIPTION_LENGTH = 1024
 MIN_SHORT_DESCRIPTION_LENGTH = 25
 MAX_SHORT_DESCRIPTION_LENGTH = 64
+ALL_SKILLS_SELECTOR = "all"
 
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 FRONTMATTER_KEY_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]+(.*))?$")
@@ -55,6 +56,8 @@ def skill_name_error(skill_name: str) -> str | None:
         return f"スキル名は {MAX_SKILL_NAME_LENGTH} 文字以内にしてください"
     if not SKILL_NAME_PATTERN.fullmatch(skill_name):
         return "スキル名には小文字の英字、数字、単独のハイフンだけを使用してください"
+    if skill_name == ALL_SKILLS_SELECTOR:
+        return f"{ALL_SKILLS_SELECTOR} は全スキルを指定する予約語です"
     return None
 
 
@@ -370,6 +373,9 @@ def _validate_root_readme(
     required_fragments = {
         "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}": (
             "共通インストール手順に正規のスクリプト呼び出しを記載してください"
+        ),
+        "python3 scripts/install_skill.py all {{target-repository}}": (
+            "全スキルのインストール手順を記載してください"
         ),
         ".agents/skills/{{skill-name}}": "共通インストール先を記載してください",
         "${{skill-name}}": "スキルに共通する呼び出し方法を記載してください",

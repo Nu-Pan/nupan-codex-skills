@@ -78,7 +78,13 @@ class RepositoryToolsTest(unittest.TestCase):
         )
 
     def test_create_skill_refuses_invalid_name_and_existing_path(self) -> None:
-        for invalid_name in ("Uppercase", "two--hyphens", "ends-", "has space"):
+        for invalid_name in (
+            "Uppercase",
+            "two--hyphens",
+            "ends-",
+            "has space",
+            "all",
+        ):
             with self.subTest(invalid_name=invalid_name):
                 self.assertIsNotNone(skill_name_error(invalid_name))
                 with self.assertRaises(ValueError):
@@ -157,6 +163,7 @@ class RepositoryToolsTest(unittest.TestCase):
 
         messages = [issue.message for issue in issues]
         self.assertTrue(any("共通インストール手順" in message for message in messages))
+        self.assertIn("全スキルのインストール手順を記載してください", messages)
         self.assertIn("共通インストール先を記載してください", messages)
         self.assertIn("スキルに共通する呼び出し方法を記載してください", messages)
 
@@ -184,6 +191,22 @@ class RepositoryToolsTest(unittest.TestCase):
             messages,
         )
         self.assertIn("共通インストール先を記載してください", messages)
+
+    def test_missing_all_install_command_is_reported(self) -> None:
+        self._create_completed_skill()
+        readme = self.repository_root / "README.md"
+        readme.write_text(
+            readme.read_text(encoding="utf-8").replace(
+                "python3 scripts/install_skill.py all {{target-repository}}\n",
+                "",
+            ),
+            encoding="utf-8",
+        )
+
+        _, issues = validate_repository(self.repository_root)
+
+        messages = [issue.message for issue in issues]
+        self.assertIn("全スキルのインストール手順を記載してください", messages)
 
     def test_missing_file_and_mismatched_name_are_reported(self) -> None:
         skill_root = self._create_completed_skill()
@@ -286,6 +309,7 @@ class RepositoryToolsTest(unittest.TestCase):
             "## インストール\n\n"
             "```bash\n"
             "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}\n"
+            "python3 scripts/install_skill.py all {{target-repository}}\n"
             "```\n\n"
             "`{{target-repository}}/.agents/skills/{{skill-name}}` へ配置します。\n\n"
             "## 使用方法\n\n"
