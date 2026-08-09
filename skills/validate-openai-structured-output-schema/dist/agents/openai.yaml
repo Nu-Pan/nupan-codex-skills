@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validate OpenAI Structured Output Schema"
+  short_description: "Check Structured Outputs schemas before Codex runs"
+  default_prompt: "Use $validate-openai-structured-output-schema to validate the OpenAI Structured Outputs schema files changed in this repository."

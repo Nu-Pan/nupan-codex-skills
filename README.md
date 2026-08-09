@@ -15,6 +15,7 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 - [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 重要な人間意図と裁量範囲を明確にし、正本仕様を保守するスキルです。
 - [`python-dev-skill`](skills/python-dev-skill/README.md): Python プロジェクトの構成に合わせて実装と品質検査を行うスキルです。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 正本仕様の矛盾と仕様に対する実装の不整合をレビューするスキルです。
+- [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): Codex CLI と OpenAI Structured Outputs 向けの JSON Schema をオフライン検証するスキルです。
 
 ## インストール
 
