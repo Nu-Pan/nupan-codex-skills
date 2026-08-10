@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import sys
 import tempfile
@@ -47,6 +48,9 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertNotIn("$sample-skill", readme)
         self.assertNotIn(".agents/skills/sample-skill", readme)
 
+        skill_content = (skill_root / "dist" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertNotIn("## 他のスキルとの合成", skill_content)
+
         generated_content = "\n".join(
             path.read_text(encoding="utf-8") for path in sorted(expected_files)
         )
@@ -65,6 +69,7 @@ class RepositoryToolsTest(unittest.TestCase):
                 "todo-skill-capability-and-usage-conditions",
                 "todo-skill-goal-and-success-criteria",
                 "todo-skill-usage-scenarios",
+                "todo-standalone-and-composition-rules",
                 "todo-user-facing-display-name",
                 "todo-user-facing-skill-summary",
             },
@@ -319,7 +324,9 @@ class RepositoryToolsTest(unittest.TestCase):
         (skill_root / "SPEC.md").write_text(
             "# sample-skill の仕様\n\n"
             "## 目的\n\n"
-            "反復可能なサンプル処理を定義する。\n",
+            "反復可能なサンプル処理を定義する。\n\n"
+            "## 独立性と合成\n\n"
+            "単独で処理し、他の規則と両立させる。\n",
             encoding="utf-8",
         )
         (skill_root / "README.md").write_text(
@@ -336,6 +343,7 @@ class RepositoryToolsTest(unittest.TestCase):
             "description: Run repeatable sample tasks when repository behavior needs validation.\n"
             "---\n\n"
             "# Run sample tasks\n\n"
+            "## 実行\n\n"
             "Validate the input and return the result.\n",
             encoding="utf-8",
         )
@@ -345,6 +353,29 @@ class RepositoryToolsTest(unittest.TestCase):
   short_description: "Run repeatable repository sample tasks"
   default_prompt: "Use $sample-skill to run this sample task."
 ''',
+            encoding="utf-8",
+        )
+        (self.repository_root / "skill-composition.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "optional_references": [],
+                    "standalone_scenarios": [
+                        {
+                            "id": "sample-skill-standalone",
+                            "skill": "sample-skill",
+                            "request": "Run a repeatable sample task.",
+                            "expected": ["The task completes."],
+                            "forbidden": ["Another skill is required."],
+                        }
+                    ],
+                    "combination_scenarios": [],
+                    "pairs": [],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
             encoding="utf-8",
         )
         return skill_root

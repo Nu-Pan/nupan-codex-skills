@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+from skill_composition import validate_skill_composition
+
 
 MAX_SKILL_NAME_LENGTH = 64
 MAX_DESCRIPTION_LENGTH = 1024
@@ -74,20 +76,26 @@ def validate_repository(
     if not skills_root.is_dir():
         return [], [ValidationIssue(skills_root, "skills ディレクトリがありません")]
 
+    repository_skill_names: list[str] = []
+    for entry in sorted(skills_root.iterdir(), key=lambda path: path.name):
+        if not entry.is_dir():
+            issues.append(
+                ValidationIssue(entry, "skills 直下にはスキルディレクトリだけを置いてください")
+            )
+            continue
+        name_error = skill_name_error(entry.name)
+        if name_error:
+            issues.append(ValidationIssue(entry, name_error))
+            continue
+        repository_skill_names.append(entry.name)
+
+    if not repository_skill_names:
+        issues.append(ValidationIssue(skills_root, "検証対象のスキルがありません"))
+
     if requested_skill_names:
         skill_names = list(dict.fromkeys(requested_skill_names))
     else:
-        skill_names = []
-        for entry in sorted(skills_root.iterdir(), key=lambda path: path.name):
-            if not entry.is_dir():
-                issues.append(
-                    ValidationIssue(entry, "skills 直下にはスキルディレクトリだけを置いてください")
-                )
-                continue
-            skill_names.append(entry.name)
-
-        if not skill_names:
-            issues.append(ValidationIssue(skills_root, "検証対象のスキルがありません"))
+        skill_names = repository_skill_names
 
     validated_names: list[str] = []
     for skill_name in skill_names:
@@ -99,7 +107,14 @@ def validate_repository(
         validated_names.append(skill_name)
         issues.extend(validate_skill(repository_root, skill_name))
 
-    issues.extend(_validate_root_readme(repository_root, validated_names))
+    issues.extend(_validate_root_readme(repository_root, repository_skill_names))
+    issues.extend(
+        ValidationIssue(path, message)
+        for path, message in validate_skill_composition(
+            repository_root,
+            repository_skill_names,
+        )
+    )
     return validated_names, issues
 
 

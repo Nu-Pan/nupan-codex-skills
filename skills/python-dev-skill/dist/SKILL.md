@@ -13,6 +13,7 @@ description: Python プロジェクトの開発、修正、レビュー、開発
 - 検査対象の first-party Python package・module と、focused test・full test の command を package 構成と既存の開発手順から決める。
 - 宣言済みの Python、仮想環境、dependency manager、設定、project script を優先する。Python のバージョンが宣言されていない場合だけ Python 3.11 以上を使用する。
 - Ruff と mypy が未導入なら、既存の開発用 dependency group または requirements file へ追加する。pytest を使用する project では、pytest-timeout も同じ開発依存関係へ追加する。
+- 対象リポジトリの規則が依存追加を禁止する場合は追加せず、実行できない品質ゲートと理由を報告する。
 - 依存関係管理方法がない場合は repository 内の `.venv` に pip で導入し、global environment を変更しない。
 - 選択した interpreter から `python -m ruff`、`python -m mypy`、test runner を起動する。
 

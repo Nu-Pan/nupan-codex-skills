@@ -1,0 +1,332 @@
+{
+  "version": 1,
+  "optional_references": [],
+  "standalone_scenarios": [
+    {
+      "id": "japanese-writing-standalone",
+      "skill": "japanese-writing-skill",
+      "request": "既存の日本語 README の意味、数値、リンクを維持したまま、要点が先に伝わる GFM へ改訂してください。",
+      "expected": [
+        "与えられた文書だけから必要な文章作業を完了する。",
+        "意味と事実関係を維持し、要点を詳細より先に置く。"
+      ],
+      "forbidden": [
+        "別のスキルがないことを理由に文章を完成させない。",
+        "依頼されていない意味や事実関係を変更する。"
+      ]
+    },
+    {
+      "id": "lean-implementation-standalone",
+      "skill": "maintain-lean-implementation",
+      "request": "重複した分岐を持つ小さな CLI 実装を、現行仕様を保ったまま整理し、代表経路を確認してください。",
+      "expected": [
+        "単独で実装を整理し、不要になった重複を残さない。",
+        "変更した代表経路を安全に実測して結果を報告する。"
+      ],
+      "forbidden": [
+        "性能計測用の別スキルがないことを理由に実測を省略する。",
+        "現行仕様に必要な互換経路を簡潔さだけで削除する。"
+      ]
+    },
+    {
+      "id": "lean-tests-standalone",
+      "skill": "maintain-lean-tests",
+      "request": "同じ挙動を重複して検証するテストを、回帰検出能力を保ったまま整理してください。",
+      "expected": [
+        "言語固有の別スキルなしでテストと fixture を整理する。",
+        "外部挙動の検証と必要な品質ゲートを維持する。"
+      ],
+      "forbidden": [
+        "別のテストスキルがないことを理由に作業を中断する。",
+        "テスト数を減らすことだけを目的に回帰検出能力を失う。"
+      ]
+    },
+    {
+      "id": "software-specification-standalone",
+      "skill": "maintain-software-specifications",
+      "request": "既存の正本仕様へ新しい API 要求を追加し、変更対象外の意味と関連仕様との整合性を維持してください。",
+      "expected": [
+        "別のレビュースキルなしで関連仕様を調査して整合した仕様を完成させる。",
+        "必要な要求だけを追加し、未定義の裁量を過剰に埋めない。"
+      ],
+      "forbidden": [
+        "仕様レビュー用の別スキルを必須条件にする。",
+        "既存実装だけから新しい正本仕様を推測して追加する。"
+      ]
+    },
+    {
+      "id": "runtime-performance-standalone",
+      "skill": "measure-runtime-performance",
+      "request": "ローカル CLI の代表経路を計測し、確認できたボトルネックだけを改善して再計測してください。",
+      "expected": [
+        "単独で baseline、変更後の時間、計測条件を報告する。",
+        "実測で特定した箇所だけを改善する。"
+      ],
+      "forbidden": [
+        "実装保守用の別スキルがないことを理由に確認済みの改善を行わない。",
+        "実測していない箇所を推測だけで最適化する。"
+      ]
+    },
+    {
+      "id": "python-development-standalone",
+      "skill": "python-dev-skill",
+      "request": "既存の Python package の不具合を修正し、プロジェクトが定める品質ゲートと代表経路を確認してください。",
+      "expected": [
+        "単独で Python 構成を調査し、必要な実装、検査、計測を完了する。",
+        "プロジェクトが宣言する環境と設定を優先する。"
+      ],
+      "forbidden": [
+        "汎用の実装、テスト、性能スキルを完了条件にする。",
+        "既存設定を調査せずに一律の厳格設定を強制する。"
+      ]
+    },
+    {
+      "id": "specification-review-standalone",
+      "skill": "review-specification-conformance",
+      "request": "二つの正本仕様をレビューし、一方に従うと他方へ必ず違反する箇所だけを報告してください。ファイルは変更しないでください。",
+      "expected": [
+        "単独で正本と優先関係を確認し、具体的な根拠がある所見だけを返す。",
+        "レビューだけの依頼ではファイルを変更しない。"
+      ],
+      "forbidden": [
+        "仕様保守用の別スキルがないことを理由にレビューを中断する。",
+        "仕様の隙間や好みだけを fatal 所見にする。"
+      ]
+    },
+    {
+      "id": "structured-output-validation-standalone",
+      "skill": "validate-openai-structured-output-schema",
+      "request": "OpenAI Structured Outputs 用の不正な JSON Schema をオフライン検証し、許可されている場合は最小修正して再検証してください。",
+      "expected": [
+        "配布 CLI だけで診断、修正、再検証を完了する。",
+        "使用したプロファイルと結果を報告する。"
+      ],
+      "forbidden": [
+        "別のレビューまたは Python スキルを必須条件にする。",
+        "オフライン検証の成功をリモート受理の保証として報告する。"
+      ]
+    }
+  ],
+  "combination_scenarios": [
+    {
+      "id": "japanese-spec-review-fix",
+      "skills": [
+        "japanese-writing-skill",
+        "maintain-software-specifications",
+        "review-specification-conformance"
+      ],
+      "request": "日本語で書かれた二つの正本仕様をレビューし、確認できた矛盾を修正して、変更対象外の意味を維持してください。",
+      "expected": [
+        "具体的な根拠がある矛盾だけを修正する。",
+        "修正後の仕様を論理的に整合させる。",
+        "文章を要点が先に伝わる GFM へ整える。"
+      ],
+      "forbidden": [
+        "文章上の好みを仕様上の fatal 所見として扱う。",
+        "文章規則を理由に仕様の意味を変える。"
+      ]
+    },
+    {
+      "id": "python-conformance-review-fix",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "measure-runtime-performance",
+        "python-dev-skill",
+        "review-specification-conformance"
+      ],
+      "request": "Python 実装を正本仕様へ照らしてレビューし、確認できた不整合だけを修正して、テスト、品質ゲート、代表経路を確認してください。",
+      "expected": [
+        "すべての変更を確認済みの所見へ対応させる。",
+        "実装とテストを必要な最小構成に保つ。",
+        "Python 品質ゲートを実行する。",
+        "重複しない一組の計測で性能規則をすべて満たす。"
+      ],
+      "forbidden": [
+        "所見と関係のない一般的な整理を同じ変更へ混ぜる。",
+        "同じ代表経路をスキルごとに重複計測する。"
+      ]
+    },
+    {
+      "id": "python-feature-change",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "measure-runtime-performance",
+        "python-dev-skill"
+      ],
+      "request": "正本仕様を更新して Python CLI の機能を実装し、必要なテスト、品質ゲート、代表経路の計測まで完了してください。",
+      "expected": [
+        "仕様、実装、テストをそれぞれの責務に沿って更新する。",
+        "Python 固有の検査と汎用の簡潔性を両方満たす。",
+        "性能計測を一回に統合して必要な条件と結果を報告する。"
+      ],
+      "forbidden": [
+        "一つのスキルの規則で別のスキルの検証を省略する。",
+        "未定義の性能要件や仕様を推測で追加する。"
+      ]
+    },
+    {
+      "id": "structured-output-contract-review-fix",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema"
+      ],
+      "request": "正本契約として管理される OpenAI Structured Outputs 用 schema をレビューし、仕様上の不整合とオフライン診断を修正して再検証してください。",
+      "expected": [
+        "正本仕様と決定的な診断を分けて根拠として扱う。",
+        "許可された修正だけを最小範囲で行う。",
+        "修正後に仕様レビューと配布 CLI の再検証を行う。"
+      ],
+      "forbidden": [
+        "オフライン validator の実装だけから正本仕様を逆算する。",
+        "schema の修正と無関係な実装整理を追加する。"
+      ]
+    }
+  ],
+  "pairs": [
+    {
+      "skills": ["japanese-writing-skill", "maintain-lean-implementation"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["japanese-writing-skill", "maintain-lean-tests"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["japanese-writing-skill", "maintain-software-specifications"],
+      "relation": "overlap",
+      "scenario_ids": ["japanese-spec-review-fix"]
+    },
+    {
+      "skills": ["japanese-writing-skill", "measure-runtime-performance"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["japanese-writing-skill", "python-dev-skill"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["japanese-writing-skill", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["japanese-spec-review-fix"]
+    },
+    {
+      "skills": ["japanese-writing-skill", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["maintain-lean-implementation", "maintain-lean-tests"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-implementation", "maintain-software-specifications"],
+      "relation": "overlap",
+      "scenario_ids": ["python-feature-change", "structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["maintain-lean-implementation", "measure-runtime-performance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-implementation", "python-dev-skill"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-implementation", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["maintain-lean-implementation", "validate-openai-structured-output-schema"],
+      "relation": "overlap",
+      "scenario_ids": ["structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["maintain-lean-tests", "maintain-software-specifications"],
+      "relation": "overlap",
+      "scenario_ids": ["python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-tests", "measure-runtime-performance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-tests", "python-dev-skill"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["maintain-lean-tests", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix"]
+    },
+    {
+      "skills": ["maintain-lean-tests", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["maintain-software-specifications", "measure-runtime-performance"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["maintain-software-specifications", "python-dev-skill"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["maintain-software-specifications", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["japanese-spec-review-fix", "structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["maintain-software-specifications", "validate-openai-structured-output-schema"],
+      "relation": "overlap",
+      "scenario_ids": ["structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["measure-runtime-performance", "python-dev-skill"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
+    },
+    {
+      "skills": ["measure-runtime-performance", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix"]
+    },
+    {
+      "skills": ["measure-runtime-performance", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["python-dev-skill", "review-specification-conformance"],
+      "relation": "overlap",
+      "scenario_ids": ["python-conformance-review-fix"]
+    },
+    {
+      "skills": ["python-dev-skill", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["review-specification-conformance", "validate-openai-structured-output-schema"],
+      "relation": "overlap",
+      "scenario_ids": ["structured-output-contract-review-fix"]
+    }
+  ]
+}

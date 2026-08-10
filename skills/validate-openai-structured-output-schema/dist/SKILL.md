@@ -11,6 +11,8 @@ description: Codex CLI の --output-schema または OpenAI Structured Outputs �
 - 指定がない場合は、変更差分、`codex exec --output-schema` の呼び出し、設定、テストから OpenAI Structured Outputs 用の file を特定する。
 - 一般用途の JSON Schema を、用途の根拠なしにこのプロファイルで検証しない。
 
+この validator では、指定 profile への適合性だけを決定的に判定する。
+
 ## validator を実行する
 
 この skill の `SKILL.md` がある directory を `<skill-root>` として、対象ごとに次を実行する。
@@ -34,6 +36,7 @@ python3 <skill-root>/scripts/validate_schema.py \
 - 修正後は、同じ profile で validator を再実行する。
 - 未知 keyword を警告として無視しない。
 - 一般の JSON Schema validator の成功を、この validator の代わりにしない。
+- 診断をレビューの根拠に利用しても、正本仕様を validator の実装から逆算しない。
 
 ## 結果を報告する
 

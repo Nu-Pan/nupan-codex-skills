@@ -74,6 +74,10 @@ def _spec_template(skill_name: str) -> str:
 
 {{{{todo-required-inputs-constraints-and-priorities}}}}
 
+## 独立性と合成
+
+{{{{todo-standalone-and-composition-rules}}}}
+
 ## 実行時の規則
 
 {{{{todo-runtime-rules-and-procedures}}}}
@@ -106,6 +110,8 @@ description: {{{{todo-skill-capability-and-usage-conditions}}}}
 
 # {{{{todo-skill-action-heading}}}}
 
+## 実行
+
 {{{{todo-runtime-imperative-instructions}}}}
 """
 
@@ -134,6 +140,7 @@ def main() -> int:
     print(f"スキルの雛形を生成しました: {target.relative_to(REPOSITORY_ROOT)}")
     print("SPEC.md から編集し、todo- で始まるプレースホルダーをすべて解消してください。")
     print(f"完了前に実行: python3 scripts/validate_skills.py {args.skill_name}")
+    print("skill-composition.json の単独シナリオと全スキル対も更新してください。")
     return 0
 
 

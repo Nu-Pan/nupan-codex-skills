@@ -14,7 +14,8 @@
 スキルを追加または変更するときは、共通仕様に定めた順序で作業する。
 実行時仕様を変更するときは、先に対応する `SPEC.md` を変更する。
 
-日本語文書を作成または変更するときは、`skills/japanese-writing-skill/SPEC.md` の文章規則を適用する。
+日本語文書は GFM で構造化する。
+一文一義とし、要点と列挙の位置づけを詳細や個別項目より先に示す。
 
 ## 完了ゲート
 
@@ -32,3 +33,5 @@ python3 scripts/validate_skills.py {{skill-name}} [{{skill-name}} ...]
 python3 scripts/validate_skills.py
 python3 -m pytest tests skills
 ```
+
+スキルの追加、削除、適用条件、実行時規則、合成規則を変更した場合は、`skill-composition.json` で影響する単独シナリオと組み合わせシナリオも前向き評価する。

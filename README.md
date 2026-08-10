@@ -2,10 +2,12 @@
 
 Nu-Pan が管理する Codex スキルを集約したモノレポです。
 各スキルの仕様、開発用文書、インストール可能な配布物を `skills/` 配下で管理します。
+各スキルは単独で成立し、任意の複数スキルを同時に導入した場合も、適用される規則を累積して実行できるように管理します。
 
 全スキルに共通する構造と保守方法は、[`docs/skill-repository-spec.md`](docs/skill-repository-spec.md) に定義しています。
 新規スキルは、[`docs/adding-a-skill.md`](docs/adding-a-skill.md) の手順で追加します。
 開発環境の構築方法とテストの実行規約は、[`docs/development-environment.md`](docs/development-environment.md) に定義しています。
+単独評価と組み合わせ評価の台帳は、[`skill-composition.json`](skill-composition.json) に記録しています。
 
 ## 収録スキル
 
