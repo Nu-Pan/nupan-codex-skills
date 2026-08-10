@@ -1,4 +1,4 @@
 interface:
   display_name: "Python Tooling and Quality Gates"
-  short_description: "Apply Python tooling, runtime measurement, and quality gates"
-  default_prompt: "Use $python-dev-skill to implement this Python change, measure affected runnable paths, and run the appropriate Ruff, mypy, pytest-timeout, and ResourceWarning checks."
+  short_description: "Select Python performance tools and apply quality gates"
+  default_prompt: "Use $python-dev-skill to implement this Python change, select the appropriate benchmark or profiler, measure affected paths, and run the project's Python quality gates."

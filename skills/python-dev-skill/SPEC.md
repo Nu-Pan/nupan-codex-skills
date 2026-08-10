@@ -7,6 +7,7 @@
 - Ruff と mypy が未導入の場合は、既存の開発用 dependency group や requirements file へ追加する。pytest を使用するプロジェクトでは、pytest-timeout も同じ開発依存関係へ追加する。依存関係管理方法がない場合は、リポジトリ内の `.venv` に pip で導入し、グローバル環境を変更しない
 - 検査対象の Python package、module、test command は、設定ファイル、package 構成、既存の開発手順を調査して決定する
 - 実行可能な Python の処理を作成または変更した場合は、代表経路の実行時間を実測する
+- Python の性能計測では、プロジェクト既存の方法を優先し、計測対象に応じて標準ライブラリまたは必要最小限の第三者 tool を選ぶ
 
 ## 適用条件
 
@@ -17,6 +18,7 @@ Python プロジェクトの構成に従った実装と品質検査が必要な�
 - Python code のレビュー
 - Python 開発環境の整備
 - Python 向け品質ゲートの実行または変更
+- Python の benchmark、profiler、性能回帰検査の追加または変更
 
 ## 独立性と合成
 
@@ -48,6 +50,38 @@ Python 用の開発依存を追加する場合も、対象プロジェクトの�
 - source checkout からの import 成功だけで、install 後の package 構成を検証済みとすること
 - pytest を使用していないプロジェクトへ pytest または pytest-timeout を強制すること
 - timeout に到達しないことだけで、実行時間を確認済みとすること
+
+## パフォーマンス計測
+
+### goal
+
+- プロジェクトが管理する benchmark、profiler、計測 command、設定を最初に使用する
+- 代表経路の wall-clock time は、既存 benchmark または `time.perf_counter_ns()` などの monotonic clock で計測する
+- 小さく独立した Python 処理には `timeit` を使用する。setup、I/O、garbage collection、process startup が利用者の待ち時間に含まれる場合は、`timeit` の結果だけで代表経路を評価しない
+- process を分離した反復、warm-up、計測結果の保存と比較が必要な benchmark には `pyperf` を使用する
+- pytest project で、定量的な性能要件、安定して再現できる回帰、または既存の性能品質ゲートを継続的に検証する場合は、test 構成と両立する `pytest-benchmark` を使用する。機能上の正しさも別途検証する
+- 再現可能な短い処理の関数別 call 数と実行時間には `cProfile` と `pstats` を使用する
+- 長時間実行、thread、multiprocess、実行中 process、または計測用の code 変更を避ける CPU 調査には `py-spy` を使用する
+- Python allocation の発生箇所と snapshot 差分には `tracemalloc` を使用する
+- native extension と Python interpreter を含む allocation、peak、または一時 allocation の調査には Memray を使用する
+- memory tool は、memory 要件、allocation の症状、または実測で allocation や garbage collection の影響が疑われる場合だけ使用する
+- 目的に必要な一つ以上の観測を最小の tool 構成で満たす。候補 tool を一律に実行または導入しない
+- `pyperf`、`pytest-benchmark`、`py-spy`、Memray の選定条件を満たす場合は、小さな独自 benchmark または profiler helper を追加して第三者 tool の開発依存を回避しない
+- profiler の overhead を含む時間を benchmark 結果にしない。原因を特定した後は、profiler なしで代表経路を同じ条件で再計測する
+- 既存 tool と標準ライブラリでは必要な観測ができない場合は、選択した第三者 tool だけを既存の開発用 dependency group または requirements file へ追加し、lockfile を更新する
+- 計測 tool を runtime dependency へ追加しない。対象リポジトリが依存追加を禁止する場合は追加せず、代替した計測方法または未計測の範囲を報告する
+- 依存関係管理方法がない場合は、repository 内の `.venv` に選択した tool を導入し、global environment を変更しない
+- profile、trace、benchmark の再生成可能な出力は、対象リポジトリが正本として管理する場合だけ repository へ追加する
+- `py-spy` の attach など追加権限を必要とする操作は、権限を回避または拡大せず、許可された別の実行方法へ切り替えるか未計測として報告する
+
+### non-goal
+
+- `timeit` の microbenchmark だけで end-to-end の待ち時間を確認済みとすること
+- profiler の結果を、profiler なしの実行時間または性能改善率として報告すること
+- `pyperf`、`pytest-benchmark`、`py-spy`、Memray を用途の確認なしにまとめて追加すること
+- 専用 tool が満たす反復、分離、統計、観測範囲を独自 helper で不完全に再実装すること
+- CPU または memory の問題が確認されていない通常の変更で、すべての profiler を実行すること
+- profiling のために本番 process へ無断で attach し、権限や container の security 設定を変更すること
 
 ## Ruff
 
@@ -93,6 +127,7 @@ PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest {{proje
 - pytest を使用する場合は pytest-timeout を full test でも有効にする。project 固有の test runner を使用する場合も、その runner が起動する Python process へ development mode と `ResourceWarning` のエラー化を適用する
 - 第三者 library だけが発生させる warning を除外する必要がある場合は、実際の出力を根拠に module、message、warning category を用いて最小範囲に限定し、理由を記録する
 - 実行可能な処理を作成または変更した場合は、代表経路の実行時間を計測する。既存実装と比較する場合は、同じ command、入力、環境を使用する
+- profiler を使用した場合は、profiler なしの代表経路を再計測する。第三者の計測 tool を追加した場合は、選定理由と追加した開発依存を報告する
 
 ### non-goal
 
