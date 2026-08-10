@@ -1,4 +1,4 @@
 interface:
   display_name: "簡潔で有効なテストを維持"
-  short_description: "外部挙動を検証し、重複テストと過大な fixture を整理する"
-  default_prompt: "$maintain-lean-tests を使って、テストと fixture を現行仕様に必要な最小構成へ整理してください。"
+  short_description: "外部挙動を検証し、性能回帰は実測に基づけて重複テストを整理する"
+  default_prompt: "$maintain-lean-tests を使って、性能回帰は実測結果に基づけ、テストと fixture を必要な最小構成へ整理してください。"

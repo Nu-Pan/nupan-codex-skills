@@ -10,10 +10,11 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 ## 収録スキル
 
 - [`japanese-writing-skill`](skills/japanese-writing-skill/README.md): 日本語の技術文書を明確に構成するスキルです。
-- [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 現行仕様に必要な実装だけを簡潔で保守しやすい状態に保つスキルです。
-- [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 意味のある挙動を検証し、重複や旧仕様のテストを整理するスキルです。
+- [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 代表経路を実測し、現行仕様に必要な実装だけを簡潔で保守しやすい状態に保つスキルです。
+- [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 意味のある挙動と実測済みの性能回帰を検証し、重複や旧仕様のテストを整理するスキルです。
 - [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 重要な人間意図と裁量範囲を明確にし、正本仕様を保守するスキルです。
-- [`python-dev-skill`](skills/python-dev-skill/README.md): Python プロジェクトの構成に合わせて実装と品質検査を行うスキルです。
+- [`measure-runtime-performance`](skills/measure-runtime-performance/README.md): 代表経路の実行時間を計測し、確認したボトルネックだけを改善するスキルです。
+- [`python-dev-skill`](skills/python-dev-skill/README.md): Python プロジェクトの構成に合わせて実行時間を計測し、実装と品質検査を行うスキルです。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 正本仕様の矛盾と仕様に対する実装の不整合をレビューするスキルです。
 - [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): Codex CLI と OpenAI Structured Outputs 向けの JSON Schema をオフライン検証するスキルです。
 

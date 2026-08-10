@@ -11,6 +11,7 @@ Python プロジェクトの構成に合わせて、実装と品質検査を行�
 - install 後相当の package test
 - Ruff と mypy
 - pytest-timeout
+- 代表経路の実行時間計測
 - Python development mode と `ResourceWarning` 検査
 
 実行時仕様の正本は、[`SPEC.md`](SPEC.md) です。

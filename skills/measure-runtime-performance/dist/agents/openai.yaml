@@ -1,0 +1,7 @@
+interface:
+  display_name: "実行時間を計測して改善"
+  short_description: "代表経路を実測し、確認したボトルネックだけを安全に改善する"
+  default_prompt: "$measure-runtime-performance を使って、代表的な実行経路を計測し、確認したボトルネックを改善してください。"
+
+policy:
+  allow_implicit_invocation: true

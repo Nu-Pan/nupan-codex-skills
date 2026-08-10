@@ -6,6 +6,7 @@
 - プロジェクトが宣言する Python のバージョン、仮想環境、依存関係管理方法、ツール設定を優先する。Python のバージョンが宣言されていない場合は Python 3.11 以上を使用する
 - Ruff と mypy が未導入の場合は、既存の開発用 dependency group や requirements file へ追加する。pytest を使用するプロジェクトでは、pytest-timeout も同じ開発依存関係へ追加する。依存関係管理方法がない場合は、リポジトリ内の `.venv` に pip で導入し、グローバル環境を変更しない
 - 検査対象の Python package、module、test command は、設定ファイル、package 構成、既存の開発手順を調査して決定する
+- 実行可能な Python の処理を作成または変更した場合は、代表経路の実行時間を実測する
 
 ## 適用条件
 
@@ -27,11 +28,14 @@ Python プロジェクトの構成に従った実装と品質検査が必要な�
 - pytest を使用するプロジェクトでは、停止、deadlock、終了しない外部 process を検出するため、pytest-timeout で全体に保守的な timeout を設定する
 - timeout 値は正常時の実測時間と実行環境の揺らぎを考慮して決める。正当に長い test には、理由を残したうえで test 単位の timeout を設定する
 - 変更中の focused test でも pytest-timeout を有効にする
+- pytest-timeout は停止検出に使用し、処理速度の合格を示す benchmark として扱わない
+- Python の実行時間を判断する場合は、project の benchmark または代表経路の wall-clock time を計測する
 
 ### non-goal
 
 - source checkout からの import 成功だけで、install 後の package 構成を検証済みとすること
 - pytest を使用していないプロジェクトへ pytest または pytest-timeout を強制すること
+- timeout に到達しないことだけで、実行時間を確認済みとすること
 
 ## Ruff
 
@@ -76,6 +80,7 @@ PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest {{proje
 
 - pytest を使用する場合は pytest-timeout を full test でも有効にする。project 固有の test runner を使用する場合も、その runner が起動する Python process へ development mode と `ResourceWarning` のエラー化を適用する
 - 第三者 library だけが発生させる warning を除外する必要がある場合は、実際の出力を根拠に module、message、warning category を用いて最小範囲に限定し、理由を記録する
+- 実行可能な処理を作成または変更した場合は、代表経路の実行時間を計測する。既存実装と比較する場合は、同じ command、入力、環境を使用する
 
 ### non-goal
 
@@ -84,3 +89,4 @@ PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest {{proje
 - 第三者 library の warning を、project code に原因があるか調査せず修正対象または除外対象と決めること
 - focused test の成功や過去の実行結果だけで、development mode を使用した full test が成功したと報告すること
 - development mode と `ResourceWarning` 検査だけで、すべての resource leak を検出できると保証すること
+- pytest-timeout の成功を、性能要件または性能改善の根拠として報告すること
