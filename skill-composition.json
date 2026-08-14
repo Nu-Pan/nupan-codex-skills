@@ -98,6 +98,22 @@
       ]
     },
     {
+      "id": "suggest-commit-message-standalone",
+      "skill": "suggest-commit-message",
+      "request": "$suggest-commit-message",
+      "expected": [
+        "裸の呼び出しをコミットメッセージの提案依頼として解釈する。",
+        "意味論的なセッション文脈がある場合は、その目的と判断を根拠に未コミット変更全体の高レベルな意味を示す。",
+        "意味論的なセッション文脈がない場合は、差分から目的を補わず一つの簡潔な質問で確認する。",
+        "提案でき、追加指示がない場合は、日本語の一行一案だけをコードブロックで提示する。"
+      ],
+      "forbidden": [
+        "差分から読み取れるファイル名や修正項目をコミットメッセージとして列挙する。",
+        "README、コメント、識別子、Git 履歴、Git 差分を、欠けた意味論的なセッション文脈の代わりにする。",
+        "別の文章または Git スキルがないことを理由に提案を中断する。"
+      ]
+    },
+    {
       "id": "structured-output-validation-standalone",
       "skill": "validate-openai-structured-output-schema",
       "request": "OpenAI Structured Outputs 用の不正な JSON Schema をオフライン検証し、許可されている場合は最小修正して再検証してください。",
@@ -112,6 +128,22 @@
     }
   ],
   "combination_scenarios": [
+    {
+      "id": "japanese-commit-message-suggestion",
+      "skills": [
+        "japanese-writing-skill",
+        "suggest-commit-message"
+      ],
+      "request": "$japanese-writing-skill と $suggest-commit-message を使って、このセッションで完了した日本語技術文書の変更についてコミットメッセージを提案してください。",
+      "expected": [
+        "セッション文脈から変更全体の高レベルな意味を特定する。",
+        "意味と事実を保った自然な日本語の一行一案を、コードブロックで提示する。"
+      ],
+      "forbidden": [
+        "日本語文章の一般形式を理由に、コミットメッセージを見出しや箇条書きへ変える。",
+        "技術文書のファイル名や個別の修正内容を列挙する。"
+      ]
+    },
     {
       "id": "japanese-spec-review-fix",
       "skills": [
@@ -229,6 +261,11 @@
       "scenario_ids": ["japanese-spec-review-fix"]
     },
     {
+      "skills": ["japanese-writing-skill", "suggest-commit-message"],
+      "relation": "overlap",
+      "scenario_ids": ["japanese-commit-message-suggestion"]
+    },
+    {
       "skills": ["japanese-writing-skill", "validate-openai-structured-output-schema"],
       "relation": "orthogonal",
       "scenario_ids": []
@@ -259,6 +296,11 @@
       "scenario_ids": ["python-conformance-review-fix", "structured-output-contract-review-fix"]
     },
     {
+      "skills": ["maintain-lean-implementation", "suggest-commit-message"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["maintain-lean-implementation", "validate-openai-structured-output-schema"],
       "relation": "overlap",
       "scenario_ids": ["structured-output-contract-review-fix"]
@@ -284,6 +326,11 @@
       "scenario_ids": ["python-conformance-review-fix"]
     },
     {
+      "skills": ["maintain-lean-tests", "suggest-commit-message"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["maintain-lean-tests", "validate-openai-structured-output-schema"],
       "relation": "orthogonal",
       "scenario_ids": []
@@ -304,6 +351,11 @@
       "scenario_ids": ["japanese-spec-review-fix", "structured-output-contract-review-fix"]
     },
     {
+      "skills": ["maintain-software-specifications", "suggest-commit-message"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["maintain-software-specifications", "validate-openai-structured-output-schema"],
       "relation": "overlap",
       "scenario_ids": ["structured-output-contract-review-fix"]
@@ -319,6 +371,11 @@
       "scenario_ids": ["python-conformance-review-fix"]
     },
     {
+      "skills": ["measure-runtime-performance", "suggest-commit-message"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["measure-runtime-performance", "validate-openai-structured-output-schema"],
       "relation": "orthogonal",
       "scenario_ids": []
@@ -329,7 +386,17 @@
       "scenario_ids": ["python-conformance-review-fix"]
     },
     {
+      "skills": ["python-dev-skill", "suggest-commit-message"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["python-dev-skill", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["review-specification-conformance", "suggest-commit-message"],
       "relation": "orthogonal",
       "scenario_ids": []
     },
@@ -337,6 +404,11 @@
       "skills": ["review-specification-conformance", "validate-openai-structured-output-schema"],
       "relation": "overlap",
       "scenario_ids": ["structured-output-contract-review-fix"]
+    },
+    {
+      "skills": ["suggest-commit-message", "validate-openai-structured-output-schema"],
+      "relation": "orthogonal",
+      "scenario_ids": []
     }
   ]
 }

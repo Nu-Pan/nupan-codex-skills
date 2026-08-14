@@ -1,0 +1,7 @@
+interface:
+  display_name: "コミットメッセージを提案"
+  short_description: "セッションの意図から変更全体を表す日本語のコミットメッセージを提案する"
+  default_prompt: "$suggest-commit-message"
+
+policy:
+  allow_implicit_invocation: false

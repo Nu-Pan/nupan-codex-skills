@@ -18,6 +18,7 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 - [`measure-runtime-performance`](skills/measure-runtime-performance/README.md): 必要な計測 tool を選び、代表経路の実測で確認したボトルネックだけを改善するスキルです。
 - [`python-dev-skill`](skills/python-dev-skill/README.md): Python プロジェクトの構成と用途に合わせて benchmark・profiler を選び、実装と品質検査を行うスキルです。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 正本仕様の矛盾と仕様に対する実装の不整合をレビューするスキルです。
+- [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの目的と判断から、変更全体の高レベルな意味を表すコミットメッセージを提案するスキルです。
 - [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): Codex CLI と OpenAI Structured Outputs 向けの JSON Schema をオフライン検証するスキルです。
 
 ## インストール
