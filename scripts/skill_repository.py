@@ -205,6 +205,8 @@ def _validate_text_files(paths: Iterable[Path]) -> list[ValidationIssue]:
 
 
 def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
+    import yaml
+
     content, read_issue = _read_text(path)
     if read_issue:
         return [read_issue]
@@ -219,6 +221,25 @@ def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
         closing_index = lines.index("---", 1)
     except ValueError:
         return [ValidationIssue(path, "YAML frontmatter の終了行がありません")]
+
+    frontmatter = "\n".join(lines[1:closing_index])
+    try:
+        parsed_frontmatter = yaml.safe_load(frontmatter)
+    except yaml.YAMLError as error:
+        problem = getattr(error, "problem", None)
+        detail = f": {problem}" if problem else ""
+        mark = getattr(error, "problem_mark", None)
+        location = ""
+        if mark is not None:
+            location = f"（{mark.line + 2} 行 {mark.column + 1} 列）"
+        return [
+            ValidationIssue(
+                path,
+                f"YAML frontmatter を解釈できません{location}{detail}",
+            )
+        ]
+    if not isinstance(parsed_frontmatter, dict):
+        return [ValidationIssue(path, "YAML frontmatter は mapping として記載してください")]
 
     values: dict[str, str] = {}
     for line in lines[1:closing_index]:

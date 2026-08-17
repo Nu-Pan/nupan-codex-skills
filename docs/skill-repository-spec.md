@@ -177,6 +177,7 @@ YAML frontmatter には、`name` と `description` だけを記載する。
 
 frontmatter は、次の条件を満たす。
 
+- YAML の mapping として解釈できる形式にする。
 - `name` をスキル名と一致させる。
 - `description` に、スキルの機能と適用条件を記載する。
 - `description` を 1,024 文字以内にする。

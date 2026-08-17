@@ -105,7 +105,7 @@ def _readme_template(skill_name: str) -> str:
 def _skill_template(skill_name: str) -> str:
     return f"""---
 name: {skill_name}
-description: {{{{todo-skill-capability-and-usage-conditions}}}}
+description: "{{{{todo-skill-capability-and-usage-conditions}}}}"
 ---
 
 # {{{{todo-skill-action-heading}}}}

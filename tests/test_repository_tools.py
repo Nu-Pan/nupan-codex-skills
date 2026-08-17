@@ -107,6 +107,7 @@ class RepositoryToolsTest(unittest.TestCase):
         messages = [issue.message for issue in issues]
         self.assertTrue(any("未解消のプレースホルダー" in message for message in messages))
         self.assertTrue(any("収録スキル一覧" in message for message in messages))
+        self.assertFalse(any("YAML frontmatter" in message for message in messages))
 
     def test_completed_skill_passes_validation(self) -> None:
         self._create_completed_skill()
@@ -229,6 +230,27 @@ class RepositoryToolsTest(unittest.TestCase):
         messages = [issue.message for issue in issues]
         self.assertIn("必須ファイルがありません", messages)
         self.assertTrue(any("name を sample-skill" in message for message in messages))
+
+    def test_invalid_skill_frontmatter_yaml_is_reported(self) -> None:
+        skill_root = self._create_completed_skill()
+        skill_file = skill_root / "dist" / "SKILL.md"
+        skill_file.write_text(
+            skill_file.read_text(encoding="utf-8").replace(
+                "description: Run repeatable sample tasks when repository behavior needs validation.",
+                "description: `$sample-skill` runs repeatable sample tasks.",
+            ),
+            encoding="utf-8",
+        )
+
+        _, issues = validate_repository(self.repository_root)
+
+        self.assertTrue(
+            any(
+                issue.path == skill_file
+                and "YAML frontmatter を解釈できません" in issue.message
+                for issue in issues
+            )
+        )
 
     def test_forbidden_distribution_file_is_reported(self) -> None:
         skill_root = self._create_completed_skill()
