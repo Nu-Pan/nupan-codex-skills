@@ -20,6 +20,7 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 正本仕様の矛盾と仕様に対する実装の不整合をレビューするスキルです。
 - [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの目的と判断から、変更全体の高レベルな意味を表すコミットメッセージを提案するスキルです。
 - [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): Codex CLI と OpenAI Structured Outputs 向けの JSON Schema をオフライン検証するスキルです。
+- [`verify-codex-cli-behavior`](skills/verify-codex-cli-behavior/README.md): 対象版の Codex CLI 挙動を GitHub の実装本体で確認して根拠を残すスキルです。
 
 ## インストール
 

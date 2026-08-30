@@ -125,9 +125,68 @@
         "別のレビューまたは Python スキルを必須条件にする。",
         "オフライン検証の成功をリモート受理の保証として報告する。"
       ]
+    },
+    {
+      "id": "codex-cli-behavior-source-standalone",
+      "skill": "verify-codex-cli-behavior",
+      "request": "Codex CLI の JSONL 出力を子プロセスから読むアプリを実装し、依存する CLI 挙動を対象版の GitHub ソースと安全な実測で確認して根拠を残してください。",
+      "expected": [
+        "対象の Codex CLI version を特定し、不明な場合は latest stable release を代用したことを明記する。",
+        "release tag を commit まで dereference し、commit object であることを確認した full SHA を使用する。",
+        "重要な各挙動を、対象 revision の production implementation にある 40 文字の full commit SHA と最小行範囲を含む GitHub permalink で根拠付ける。",
+        "同じ immutable permalink を正本または設計文書と依存する実装のコードコメントへ記録する。",
+        "対象 revision に根拠付けた重要挙動への依存に、version pin、起動時の version check、または安全側の capability fallback を実装する。",
+        "対象 version、platform、full commit SHA、GitHub production source permalink、focused verification の結果を最終報告にも直接記載する。",
+        "同じ version、platform、設定で安全かつ実行可能なら focused verification を行い、実測不能なら理由と影響を報告する。"
+      ],
+      "forbidden": [
+        "文書、記憶、可変 branch、test code だけを CLI 挙動の根拠にする。",
+        "annotated release tag の tag object SHA を、dereference 後の commit SHA として扱う。",
+        "latest stable release の代用を対象環境と一致する version として報告する。",
+        "対象 revision に根拠付けた重要挙動へ、version pin、version check、capability fallback のいずれも設けない。",
+        "最終報告で設計文書やコードへのリンクだけを示し、GitHub production source permalink URL 自体を省略する。",
+        "ソース確認を実測済みとして扱い、文書またはコードコメントへの根拠記録を省略する。"
+      ]
     }
   ],
   "combination_scenarios": [
+    {
+      "id": "codex-cli-output-schema-source-evidence",
+      "skills": [
+        "japanese-writing-skill",
+        "maintain-lean-implementation",
+        "maintain-software-specifications",
+        "python-dev-skill",
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior"
+      ],
+      "request": "Codex CLI の `exec --output-schema` を利用する Python アプリについて、日本語の正本仕様を更新し、確認できた不整合だけを最小修正して、schema、CLI 挙動の GitHub ソース根拠、Python 品質ゲート、安全な代表経路を検証してください。",
+      "expected": [
+        "日本語の正本仕様を GFM、一文一義、要点先行で構造化し、既存の意味を保つ。",
+        "正本仕様を先に更新し、確認済みの不整合だけに対応する簡潔な実装へ保つ。",
+        "Structured Outputs 用 schema を配布 CLI でオフライン検証し、使用したプロファイルと結果を報告する。",
+        "対象 project の Python 環境と設定を使い、書き換えなしの Ruff、mypy、full test を fresh に実行して結果を報告する。",
+        "対象の Codex CLI version または latest stable release の代用を明記し、重要な各挙動を production implementation の 40 文字の full commit SHA と最小行範囲を含む GitHub permalink で根拠付ける。",
+        "release tag を commit まで dereference し、commit object であることを確認した full SHA を使用する。",
+        "同じ immutable permalink を正本または設計文書と依存する実装のコードコメントへ記録する。",
+        "対象 revision に根拠付けた重要挙動への依存に、version pin、起動時の version check、または安全側の capability fallback を実装する。",
+        "対象 version、platform、full commit SHA、GitHub production source permalink、focused verification の結果を最終報告にも直接記載する。",
+        "同じ version、platform、設定で安全かつ実行可能なら、同じ代表経路を CLI 挙動の focused verification と wall-clock 実行時間の計測に一回だけ使い、結果を報告する。実測不能なら理由と影響を報告する。"
+      ],
+      "forbidden": [
+        "文章規則を理由に正本仕様の意味、数値、技術用語、リンク、コード、コマンドを変える。",
+        "文書、記憶、可変 branch、test code だけから CLI 挙動を断定する。",
+        "annotated release tag の tag object SHA を、dereference 後の commit SHA として扱う。",
+        "latest stable release の代用を伏せる、または対象環境と一致すると断定する。",
+        "Python の設定済み品質ゲートを省略する、検査中に対象コードを書き換える、または global Python 環境を変更する。",
+        "実行可能な Python の変更で代表経路の wall-clock 実行時間を計測しない、または focused verification と同じ条件の実測を不要に重複する。",
+        "対象 revision に根拠付けた重要挙動へ、version pin、version check、capability fallback のいずれも設けない。",
+        "最終報告で設計文書やコードへのリンクだけを示し、GitHub production source permalink URL 自体を省略する。",
+        "ソース確認を実測の代わりにし、根拠文書またはコードコメントを省略する。",
+        "オフライン validator の実装から正本仕様を逆算する、または確認した不整合と無関係な実装整理を加える。"
+      ]
+    },
     {
       "id": "japanese-commit-message-suggestion",
       "skills": [
@@ -271,6 +330,11 @@
       "scenario_ids": []
     },
     {
+      "skills": ["japanese-writing-skill", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
+    },
+    {
       "skills": ["maintain-lean-implementation", "maintain-lean-tests"],
       "relation": "overlap",
       "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
@@ -306,6 +370,11 @@
       "scenario_ids": ["structured-output-contract-review-fix"]
     },
     {
+      "skills": ["maintain-lean-implementation", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
+    },
+    {
       "skills": ["maintain-lean-tests", "maintain-software-specifications"],
       "relation": "overlap",
       "scenario_ids": ["python-feature-change"]
@@ -336,6 +405,11 @@
       "scenario_ids": []
     },
     {
+      "skills": ["maintain-lean-tests", "verify-codex-cli-behavior"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["maintain-software-specifications", "measure-runtime-performance"],
       "relation": "orthogonal",
       "scenario_ids": []
@@ -361,6 +435,11 @@
       "scenario_ids": ["structured-output-contract-review-fix"]
     },
     {
+      "skills": ["maintain-software-specifications", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
+    },
+    {
       "skills": ["measure-runtime-performance", "python-dev-skill"],
       "relation": "overlap",
       "scenario_ids": ["python-conformance-review-fix", "python-feature-change"]
@@ -381,6 +460,11 @@
       "scenario_ids": []
     },
     {
+      "skills": ["measure-runtime-performance", "verify-codex-cli-behavior"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
       "skills": ["python-dev-skill", "review-specification-conformance"],
       "relation": "overlap",
       "scenario_ids": ["python-conformance-review-fix"]
@@ -396,6 +480,11 @@
       "scenario_ids": []
     },
     {
+      "skills": ["python-dev-skill", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
+    },
+    {
       "skills": ["review-specification-conformance", "suggest-commit-message"],
       "relation": "orthogonal",
       "scenario_ids": []
@@ -406,9 +495,24 @@
       "scenario_ids": ["structured-output-contract-review-fix"]
     },
     {
+      "skills": ["review-specification-conformance", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
+    },
+    {
       "skills": ["suggest-commit-message", "validate-openai-structured-output-schema"],
       "relation": "orthogonal",
       "scenario_ids": []
+    },
+    {
+      "skills": ["suggest-commit-message", "verify-codex-cli-behavior"],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": ["validate-openai-structured-output-schema", "verify-codex-cli-behavior"],
+      "relation": "overlap",
+      "scenario_ids": ["codex-cli-output-schema-source-evidence"]
     }
   ]
 }

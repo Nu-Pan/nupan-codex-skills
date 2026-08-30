@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex CLI 挙動をソースで検証"
+  short_description: "対象版の Codex CLI 挙動を GitHub の実装本体で確認して根拠を残す"
+  default_prompt: "$verify-codex-cli-behavior を使って、Codex CLI を利用するアプリの挙動根拠を GitHub ソースと実測で確認してください。"
+policy:
+  allow_implicit_invocation: true
