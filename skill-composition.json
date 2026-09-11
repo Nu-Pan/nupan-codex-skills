@@ -86,10 +86,11 @@
     {
       "id": "specification-review-standalone",
       "skill": "review-specification-conformance",
-      "request": "正本仕様 api.md と report.md をレビューしてください。具体的な根拠で問題と言える箇所を報告し、ファイルは変更しないでください。",
+      "request": "正本仕様 api.md と report.md の整合性と、app.py の適合性をレビューしてください。具体的な根拠で問題と言える箇所を報告し、ファイルは変更しないでください。",
       "expected": [
         "正本の明確な矛盾を、位置と要求への影響を示して報告する。",
-        "原則から妥当に判断できる余地を問題にせず、単独でレビューを行う。"
+        "原則から妥当に判断できる余地を問題にせず、単独でレビューを行う。",
+        "実現方法を選べる仕様でも、要求された結果に反する実装は不一致として報告する。"
       ],
       "forbidden": [
         "未列挙のケースや複数の妥当解だけを所見にする。",
@@ -125,9 +126,9 @@
     {
       "id": "codex-cli-behavior-source-standalone",
       "skill": "verify-codex-cli-behavior",
-      "request": "このアプリが依存する Codex CLI の挙動を、指定版の GitHub ソースと安全な確認で検証し、根拠を成果物へ残してください。SPEC.md と integration.py を参照してください。",
+      "request": "この環境にインストールされている Codex CLI をそのまま使い、アプリが依存する挙動を、その版の GitHub ソースと安全な実測で検証してください。SPEC.md と integration.py を参照し、根拠を成果物へ残してください。",
       "expected": [
-        "対象 revision を commit object まで確定し、重要な依存を固定 SHA の production permalink へ結び付ける。",
+        "インストール済み CLI の版を確認し、対応する revision を commit object まで確定して、重要な依存を固定 SHA の production permalink へ結び付ける。",
         "ソースと実測を区別し、互換性対策と未確認範囲を報告する。",
         "既存の根拠を追跡できれば、同じ文面や URL を複数箇所へ複製させない。",
         "リポジトリの配置に合わせて根拠の詳細を集約し、integration code と最終報告から追跡できるようにする。"
@@ -152,10 +153,10 @@
         "validate-openai-structured-output-schema",
         "verify-codex-cli-behavior"
       ],
-      "request": "Codex CLI の exec --output-schema を利用する integration.py をレビューしてください。SPEC.md と schema.json を読み、CLI の重要な挙動を指定版の GitHub ソースと安全な確認へ結び付け、schema をオフライン検証し、既存の Python 品質ゲートも実行してください。アプリのファイルは変更しないでください。",
+      "request": "Codex CLI の exec --output-schema を利用する integration.py をレビューしてください。この環境にインストールされている CLI をそのまま使い、SPEC.md と schema.json を読んで、重要な挙動をその版の GitHub ソースと安全な実測へ結び付けてください。schema のオフライン検証と既存の Python 品質ゲートも実行してください。アプリのファイルは変更しないでください。",
       "expected": [
         "正本要求、CLI の実装根拠、schema の診断を区別して判断する。",
-        "対象版の production source を固定 SHA の permalink で示し、実測・未確認範囲・互換性対策を追跡できる形で報告する。",
+        "インストール済み CLI と同じ版の production source を固定 SHA の permalink で示し、実測・未確認範囲・互換性対策を追跡できる形で報告する。",
         "配布 validator と既存の Python 品質ゲートを使い、同じ調査や検証を共用する。",
         "必要な要点と根拠を読み取りやすい日本語で伝える。"
       ],
