@@ -39,7 +39,7 @@ lint、format、型検査は既存設定に従い、検証時は書き換えな�
 | CPU 時間の内訳 | `cProfile` と `pstats`、`py-spy` |
 | allocation や memory の使用 | `tracemalloc`、Memray |
 
-microbenchmark はその計測範囲の根拠として使い、profiler で原因を調べた後は profiler なしで再計測する。停止検出の timeout は性能の確認とは区別する。追加権限を必要とする計測も許可された範囲で行う。
+手段は必要な観測が得られるかで選ぶ。microbenchmark はその処理の時間を示すため、利用者の待ち時間を判断するには起動や I/O を含む経路を測る。profiler 自身も所要時間に影響するため、原因を調べた後は profiler なしで再計測する。停止検出の timeout は性能の確認とは区別し、計測は許可された権限の範囲で行う。
 
 ## 完了前に検証する
 

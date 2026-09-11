@@ -130,12 +130,13 @@
         "対象 revision を commit object まで確定し、重要な依存を固定 SHA の production permalink へ結び付ける。",
         "ソースと実測を区別し、互換性対策と未確認範囲を報告する。",
         "既存の根拠を追跡できれば、同じ文面や URL を複数箇所へ複製させない。",
-        "根拠の詳細を文書へ集約し、integration code と最終報告から追跡できるようにする。"
+        "リポジトリの配置に合わせて根拠の詳細を集約し、integration code と最終報告から追跡できるようにする。"
       ],
       "forbidden": [
         "文書やテストだけで production source の確認を代用する。",
         "ソースと実測の不一致を隠す、または異なる条件の確認を互換性保証にする。",
-        "特定の文書名や近接コメントの欠落だけを挙動の不整合とする。"
+        "特定の文書名や近接コメントの欠落だけを挙動の不整合とする。",
+        "検証根拠を記録する依頼だけで、アプリの挙動や契約を修正する。"
       ]
     }
   ],
@@ -213,6 +214,20 @@
         "好みや仕様の裁量を欠陥にする。",
         "旧規定へ例外を積み増して矛盾を隠す。",
         "修正対象外の独立した要求を変更する。"
+      ]
+    },
+    {
+      "id": "japanese-spec-revision-review",
+      "skills": ["japanese-writing-skill", "review-specification-conformance"],
+      "request": "api.md と report.md の改訂案を、変更要求 CHANGE.md と改訂前の baseline/ に照らしてレビューしてください。結果は日本語で報告し、ファイルは変更しないでください。",
+      "expected": [
+        "改訂案を要求と照合し、必要な要求の欠落と根拠のない制約の追加を、それぞれ具体的な影響と位置を示して報告する。",
+        "原則で判断できる余地を認め、読み手が対応を判断できる日本語で伝える。"
+      ],
+      "forbidden": [
+        "改訂案自体に矛盾がないことだけで、要求を満たしたと判断する。",
+        "文言や構成の変更を要求の欠落とみなし、改訂前の文章へ戻すことを求める。",
+        "レビューを理由にファイルを変更する。"
       ]
     },
     {
@@ -329,7 +344,8 @@
       "relation": "overlap",
       "scenario_ids": [
         "japanese-spec-reconstruction",
-        "japanese-spec-review-fix"
+        "japanese-spec-review-fix",
+        "japanese-spec-revision-review"
       ]
     },
     {
