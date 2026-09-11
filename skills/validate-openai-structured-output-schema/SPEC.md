@@ -2,9 +2,9 @@
 
 ## 目的と適用場面
 
-OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフラインで検証する。Codex CLI の `--output-schema` へ渡す schema の作成・変更・レビューにも適用する。JSON Schema 一般や生成済み instance の検証には使わない。
+OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフラインで検証する。また、Codex CLI の `--output-schema` へ渡す schema の作成・変更・レビューにも適用する。ただし、JSON Schema 一般や生成済み instance の検証には使わない。
 
-利用者が指定したファイルを優先し、指定がなければ呼び出し元や設定から用途を確かめて対象を特定する。配布 CLI で診断し、許可された修正を行う。結果はバージョン付きプロファイルへの適合を示すもので、リモートサービスの受理を保証しない。
+利用者が指定したファイルを優先し、指定がなければ呼び出し元や設定から用途を確かめて対象を特定する。そのうえで、配布 CLI で診断し、許可された修正を行う。ただし、結果はバージョン付きプロファイルへの適合を示すもので、リモートサービスの受理を保証しない。
 
 ## プロファイル
 
@@ -13,13 +13,13 @@ OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフ�
 - [Structured model outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [Non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)
 
-対応範囲はこのバージョンで固定する。変更するときは公式文書を再確認し、新しいバージョン付きプロファイルを追加する。
+対応範囲はこのバージョンで固定する。そのため、変更するときは公式文書を再確認し、新しいバージョン付きプロファイルを追加する。
 
 ## スキーマ規則
 
 ### JSON 文書
 
-入力は UTF-8 の JSON 文書とし、重複キー、`NaN`、`Infinity`、`-Infinity` を受理しない。schema の各ノードは JSON object とし、boolean schema は受理しない。
+入力は UTF-8 の JSON 文書とし、重複キー、`NaN`、`Infinity`、`-Infinity` を受理しない。また、schema の各ノードは JSON object とし、boolean schema は受理しない。
 
 ルートは `type` が文字列の `object` である schema object とする。ルートでの `anyOf` と nullable type は受理しない。
 
@@ -27,7 +27,7 @@ OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフ�
 
 単一型として `string`、`number`、`integer`、`boolean`、`object`、`array`、`null` を許可する。配列形式の `type` は nullable を表すために使い、`null` と一つの非 null 型を重複なく指定する。
 
-非ルートでは `anyOf` を使える。一つ以上の schema object を分岐に持ち、各分岐は同じプロファイルに適合する必要がある。
+非ルートでは `anyOf` を使える。ただし、一つ以上の schema object を分岐に持ち、各分岐は同じプロファイルに適合する必要がある。
 
 `$defs` とローカル `$ref` を許可する。`$ref` は `#` または `#/` で始まる JSON Pointer で、文書内の schema object を指すものとする。再帰参照は循環を検出して展開を止める。
 
@@ -42,8 +42,8 @@ OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフ�
 | `const` | JSON 値 |
 | `$defs` | 定義名から schema object への object |
 
-`$ref` schema object では、`$ref`、`description`、`$defs` だけを許可する。
-`anyOf` schema object では、`anyOf`、`description`、`$defs` だけを許可する。
+一方、`$ref` schema object では、`$ref`、`description`、`$defs` だけを許可する。
+また、`anyOf` schema object では、`anyOf`、`description`、`$defs` だけを許可する。
 
 ### 型固有のキーワード
 
@@ -79,7 +79,7 @@ nullable を含め、指定した型に対応する規則を適用する。
 | enum 値の合計 | 1,000 |
 | 250 個を超える値を持つ一つの enum の、文字列値の文字数合計 | 15,000 |
 
-ネスト検査では `properties`、`items`、`anyOf`、`$ref` をたどり、同じ schema node へ戻る循環は追加階層として展開しない。未参照の定義も、定義自身を入口として検査する。
+ネスト検査では `properties`、`items`、`anyOf`、`$ref` をたどり、同じ schema node へ戻る循環は追加階層として展開しない。また、未参照の定義も、定義自身を入口として検査する。
 
 ## CLI
 
@@ -129,12 +129,12 @@ JSON 出力は `profile`、`path`、`valid`、`errors` を持つ object とし�
 
 対象ごとに配布 CLI を実行し、全診断を確認する。配布 CLI は固有の許可リストと上限を検査するため、一般の JSON Schema validator の成功で代用しない。API や Codex CLI を呼び出さずに検証する。
 
-修正の依頼では、診断箇所と関連する定義を一緒に読み、意図する契約を保って不整合を解消する。契約の根拠はアプリの正本に、プロファイル適合性の根拠は診断結果に求める。修正後は同じプロファイルで再検証する。レビューだけの依頼ではファイルを変更しない。
+修正の依頼では、診断箇所と関連する定義を一緒に読み、意図する契約を保って不整合を解消する。契約の根拠はアプリの正本に、プロファイル適合性の根拠は診断結果に求める。そのうえで、修正後は同じプロファイルで再検証する。一方、レビューだけの依頼ではファイルを変更しない。
 
 ## 結果と検証
 
 報告は、どのファイルをどのプロファイルで検証し、適合したか、違反が残るか、検証できなかったかを判断できるものにする。残る違反は診断コードと JSON Pointer から原因へたどれるようにする。
 
 配布 CLI のテストでは、入力、プロファイル規則、診断形式、終了コードを検証する。
-上限値と超過値の境界、再帰参照の停止を確認する。
+また、上限値と超過値の境界、再帰参照の停止を確認する。
 複数の規則が同じ schema の検証を求める場合は、一回の結果を共用する。

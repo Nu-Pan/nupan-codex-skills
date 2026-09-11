@@ -4,10 +4,10 @@
 
 全スキルに共通する構造と保守方法は、[`docs/skill-repository-spec.md`](docs/skill-repository-spec.md) を正本とする。
 新規スキルの追加では、[`docs/adding-a-skill.md`](docs/adding-a-skill.md) の手順にも従う。
-開発環境の構築と pytest の実行では、[`docs/development-environment.md`](docs/development-environment.md) の規約に従う。
+また、開発環境の構築と pytest の実行では、[`docs/development-environment.md`](docs/development-environment.md) の規約に従う。
 
 各スキルの実行時仕様は、`skills/{{skill-name}}/SPEC.md` を正本とする。
-スキル固有の保守規則がある場合は、そのスキルの `AGENTS.md` も適用する。
+また、スキル固有の保守規則がある場合は、そのスキルの `AGENTS.md` も適用する。
 
 ## 変更
 
@@ -15,12 +15,12 @@
 実行時仕様を変更するときは、先に対応する `SPEC.md` を変更する。
 
 記述・改訂・レビューには、共通仕様の「記述と改訂の方針」を適用する。
-依頼の影響を受ける説明を一体として組み直し、変更履歴を知らなくても現在の意図が伝わる状態にする。
+そのうえで、依頼の影響を受ける説明を一体として組み直し、変更履歴を知らなくても現在の意図が伝わる状態にする。
 
 ## 完了ゲート
 
 変更したスキルを指定して、リポジトリ検査を実行する。
-対象スキルに `tests/` がある場合は、そのテストも実行する。
+また、対象スキルに `tests/` がある場合は、そのテストも実行する。
 
 ```bash
 python3 -m pytest skills/{{skill-name}}/tests
@@ -34,4 +34,4 @@ python3 scripts/validate_skills.py
 python3 -m pytest tests skills
 ```
 
-スキルの追加、削除、適用条件、実行時規則、合成規則を変更した場合は、`skill-composition.json` で影響する単独シナリオと組み合わせシナリオも前向き評価する。
+さらに、スキルの追加、削除、適用条件、実行時規則、合成規則を変更した場合は、`skill-composition.json` で影響する単独シナリオと組み合わせシナリオも前向き評価する。
