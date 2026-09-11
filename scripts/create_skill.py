@@ -55,31 +55,23 @@ def _write_scaffold(skill_root: Path, skill_name: str) -> None:
 def _spec_template(skill_name: str) -> str:
     return f"""# {skill_name} の仕様
 
-## 目的
+## 目的と適用場面
 
 {{{{todo-skill-goal-and-success-criteria}}}}
 
-## 適用条件
-
 {{{{todo-skill-usage-scenarios}}}}
 
-## 入力と前提
-
-{{{{todo-required-inputs-constraints-and-priorities}}}}
-
-## 判断原則
+## 判断と実行
 
 {{{{todo-decision-principles-and-rationale}}}}
 
-## 実行時の規則
+{{{{todo-required-inputs-constraints-and-priorities}}}}
 
 {{{{todo-runtime-rules-and-procedures}}}}
 
-## 出力
+## 出力と確認
 
 {{{{todo-expected-output-and-default-format}}}}
-
-## 検証
 
 {{{{todo-completion-checks}}}}
 """

@@ -7,7 +7,7 @@ Codex CLI の `--output-schema` へ渡す schema の作成・変更・レビュ�
 JSON Schema 一般や生成済み instance の適合性は、このプロファイルの判定対象に含めない。
 
 利用者が指定したファイルを優先し、指定がなければ用途を確認できる呼び出し元や設定から対象を特定する。
-別のスキルがなくても、配布 CLI で対象の診断と許可された修正を行う。
+配布 CLI で対象の診断と許可された修正を行う。
 判定するのはバージョン付きプロファイルへの適合性であり、リモートサービスの受理を保証しない。
 
 ## プロファイル
@@ -63,16 +63,14 @@ JSON Schema の各ノードは JSON object とし、boolean schema を受理し�
 
 ### 共通キーワード
 
-型付き schema object では、必要に応じて次の共通キーワードを許可する。
+型付き schema object では、次の共通キーワードを許可する。
 
-- `description`
-- `enum`
-- `const`
-- `$defs`
-
-`description` は文字列とする。
-`enum` は、一つ以上の重複しない JSON 値を持つ配列とする。
-`$defs` は、定義名から schema object への object とする。
+| キーワード | 値 |
+| --- | --- |
+| `description` | 文字列 |
+| `enum` | 一つ以上の重複しない JSON 値を持つ配列 |
+| `const` | JSON 値 |
+| `$defs` | 定義名から schema object への object |
 
 `$ref` schema object では、`$ref`、`description`、`$defs` だけを許可する。
 `anyOf` schema object では、`anyOf`、`description`、`$defs` だけを許可する。
@@ -84,7 +82,6 @@ JSON Schema の各ノードは JSON object とし、boolean schema を受理し�
 `required` は、重複しないプロパティ名の配列とする。
 
 `required` の集合は、`properties` のキー集合と完全に一致させる。
-不足した必須項目と、定義されていない必須項目をどちらもエラーにする。
 `additionalProperties` は JSON boolean の `false` とする。
 
 ### array
@@ -125,33 +122,24 @@ JSON boolean を number として扱わない。
 
 ### 非対応キーワードと未知キーワード
 
-OpenAI が対応しない構成キーワードには、`UNSUPPORTED_KEYWORD` を報告する。
-対象となるキーワードを次に示す。
+許可しないキーワードは、次のエラーで区別する。警告へ緩和するオプションは設けない。
 
-- `allOf`
-- `oneOf`
-- `not`
-- `dependentRequired`
-- `dependentSchemas`
-- `if`
-- `then`
-- `else`
-
-許可リストにない他のキーワードには、`UNKNOWN_KEYWORD` を報告する。
-同じキーワードを、警告へ緩和するオプションは設けない。
+| 対象 | 診断コード |
+| --- | --- |
+| 非対応の構成キーワード `allOf`、`oneOf`、`not`、`dependentRequired`、`dependentSchemas`、`if`、`then`、`else` | `UNSUPPORTED_KEYWORD` |
+| 許可リストにないその他のキーワード | `UNKNOWN_KEYWORD` |
 
 ### 上限
 
 文書内の物理的に一意な schema node を一度だけ集計する。
-再帰参照による展開分を重複して数えない。
 
-適用する上限を次に示す。
-
-- object property の合計は 5,000 以下
-- object の実効的なネストは 10 階層以下
-- property 名、定義名、文字列の enum 値、文字列の const 値の文字数合計は 120,000 以下
-- enum 値の合計は 1,000 以下
-- 250 個を超える値を持つ一つの enum では、文字列値の文字数合計は 15,000 以下
+| 集計対象 | 上限 |
+| --- | --- |
+| object property の合計 | 5,000 |
+| object の実効的なネスト | 10 階層 |
+| property 名、定義名、文字列の enum 値、文字列の const 値の文字数合計 | 120,000 |
+| enum 値の合計 | 1,000 |
+| 250 個を超える値を持つ一つの enum の、文字列値の文字数合計 | 15,000 |
 
 ネスト検査では、`properties`、`items`、`anyOf`、`$ref` をたどる。
 再帰中に同じ schema node へ戻った場合は、その循環を追加階層として展開しない。
