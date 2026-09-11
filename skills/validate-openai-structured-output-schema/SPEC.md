@@ -102,7 +102,7 @@ python3 <skill-root>/scripts/validate_schema.py \
 
 検出可能な違反をすべて集め、`schemaPointer`、`code`、`message`、`details` の順で決定的に整列する。ルートの `schemaPointer` は `/` とする。
 
-JSON 出力の形式を次に示す。
+JSON 出力は `profile`、`path`、`valid`、`errors` を持つ object とし、`errors` の各診断は `code`、`schemaPointer`、`message`、`details` を持つ。次に、`properties` にある `status` が `required` から漏れている場合の出力例を示す。
 
 ```json
 {
