@@ -1,6 +1,6 @@
 # validate-openai-structured-output-schema
 
-Codex CLI と OpenAI Structured Outputs 向けの JSON Schema を、バージョン付きの fail-closed プロファイルでオフライン検証するスキルです。
+OpenAI Structured Outputs 用の JSON Schema を、配布 CLI でバージョン付きプロファイルへ照合します。
 
 仕様の正本は、[`SPEC.md`](SPEC.md) です。
 配布物は、[`dist`](dist) にあります。

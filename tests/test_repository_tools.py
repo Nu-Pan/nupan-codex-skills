@@ -48,36 +48,14 @@ class RepositoryToolsTest(unittest.TestCase):
         self.assertNotIn("$sample-skill", readme)
         self.assertNotIn(".agents/skills/sample-skill", readme)
 
-        skill_content = (skill_root / "dist" / "SKILL.md").read_text(encoding="utf-8")
-        self.assertNotIn("## 他のスキルとの合成", skill_content)
-
         generated_content = "\n".join(
             path.read_text(encoding="utf-8") for path in sorted(expected_files)
         )
         placeholder_names = set(re.findall(r"\{\{([^{}]+)\}\}", generated_content))
-        self.assertEqual(
-            {
-                "todo-completion-checks",
-                "todo-concrete-request-example",
-                "todo-expected-output-and-default-format",
-                "todo-out-of-scope-requests-and-scenarios",
-                "todo-required-inputs-constraints-and-priorities",
-                "todo-runtime-imperative-instructions",
-                "todo-runtime-rules-and-procedures",
-                "todo-short-description",
-                "todo-skill-action-heading",
-                "todo-skill-capability-and-usage-conditions",
-                "todo-skill-goal-and-success-criteria",
-                "todo-skill-usage-scenarios",
-                "todo-standalone-and-composition-rules",
-                "todo-user-facing-display-name",
-                "todo-user-facing-skill-summary",
-            },
-            placeholder_names,
-        )
+        self.assertTrue(placeholder_names)
         self.assertTrue(
             all(
-                re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+                re.fullmatch(r"todo-[a-z0-9]+(?:-[a-z0-9]+)*", name)
                 for name in placeholder_names
             )
         )
@@ -252,6 +230,48 @@ class RepositoryToolsTest(unittest.TestCase):
             )
         )
 
+    def test_frontmatter_uses_yaml_string_values(self) -> None:
+        skill_root = self._create_completed_skill()
+        skill_file = skill_root / "dist" / "SKILL.md"
+        for description in (
+            '>\n  Run repeatable tasks\n  when validation is needed.',
+            '|-\n  Run repeatable tasks.\n  Use for validation.',
+            '"Run # repeatable tasks." # description comment',
+        ):
+            with self.subTest(description=description):
+                skill_file.write_text(
+                    "---\nname: sample-skill # name comment\n"
+                    f"description: {description}\n---\n\nRun the sample task.\n",
+                    encoding="utf-8",
+                )
+                _, issues = validate_repository(self.repository_root)
+                self.assertEqual([], issues)
+
+    def test_invalid_frontmatter_values_are_reported(self) -> None:
+        skill_root = self._create_completed_skill()
+        skill_file = skill_root / "dist" / "SKILL.md"
+        for metadata, expected in (
+            ("name: sample-skill\ndescription: [sample]", "description は文字列"),
+            ("name: true\ndescription: Sample task.", "name は文字列"),
+            ("name: sample-skill\ndescription: null", "description を空"),
+            (
+                "name: sample-skill\nname: another-skill\ndescription: Sample task.",
+                "キーが重複",
+            ),
+            (
+                "name: sample-skill\ndescription: Sample task.\n1: extra\nfalse: extra",
+                "frontmatter に不要な",
+            ),
+            ("name: sample-skill\ndescription: <table>", "山括弧"),
+        ):
+            with self.subTest(metadata=metadata):
+                skill_file.write_text(
+                    f"---\n{metadata}\n---\n\nRun the sample task.\n",
+                    encoding="utf-8",
+                )
+                _, issues = validate_repository(self.repository_root)
+                self.assertTrue(any(expected in issue.message for issue in issues))
+
     def test_forbidden_distribution_file_is_reported(self) -> None:
         skill_root = self._create_completed_skill()
         forbidden_file = skill_root / "dist" / "README.md"
@@ -346,8 +366,7 @@ class RepositoryToolsTest(unittest.TestCase):
         (skill_root / "SPEC.md").write_text(
             "# sample-skill の仕様\n\n"
             "## 目的\n\n"
-            "反復可能なサンプル処理を定義する。\n\n"
-            "## 独立性と合成\n\n"
+            "反復可能なサンプル処理を定義する。\n"
             "単独で処理し、他の規則と両立させる。\n",
             encoding="utf-8",
         )

@@ -77,6 +77,14 @@ class SkillCompositionTest(unittest.TestCase):
 
         self.assertTrue(any("単独シナリオがありません: beta-skill" in issue.message for issue in issues))
 
+    def test_version_requires_integer_one(self) -> None:
+        for version in (True, 1.0, "1", 2):
+            with self.subTest(version=version):
+                self.registry["version"] = version
+                self._write_registry()
+                _, issues = validate_repository(self.repository_root)
+                self.assertTrue(any("version は整数の 1" in issue.message for issue in issues))
+
     def test_every_skill_pair_requires_one_classification(self) -> None:
         self.registry["pairs"] = []
         self._write_registry()
@@ -99,34 +107,36 @@ class SkillCompositionTest(unittest.TestCase):
 
     def test_optional_reference_requires_declaration_and_fallback(self) -> None:
         alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
-        alpha_spec.write_text(
-            alpha_spec.read_text(encoding="utf-8")
-            + "\n利用可能な場合は $beta-skill の結果を再利用する。\n",
-            encoding="utf-8",
-        )
+        original = alpha_spec.read_text(encoding="utf-8")
+        for reference in ("$beta-skill", "beta-skill"):
+            with self.subTest(reference=reference):
+                alpha_spec.write_text(
+                    original + f"\n利用可能な場合は {reference} の結果を再利用する。\n",
+                    encoding="utf-8",
+                )
+                self.registry["optional_references"] = []
+                self._write_registry()
+                _, undeclared_issues = validate_repository(self.repository_root)
+                self.assertTrue(any("台帳にない任意参照" in issue.message for issue in undeclared_issues))
 
-        _, undeclared_issues = validate_repository(self.repository_root)
+                self.registry["optional_references"] = [
+                    {
+                        "source": "alpha-skill",
+                        "target": "beta-skill",
+                        "locations": ["SPEC.md"],
+                        "fallback": "Run the same check locally when beta-skill is absent.",
+                    }
+                ]
+                self._write_registry()
+                _, valid_issues = validate_repository(self.repository_root)
+                self.assertEqual([], valid_issues)
 
-        self.assertTrue(any("台帳にない任意参照" in issue.message for issue in undeclared_issues))
+                self.registry["optional_references"][0]["fallback"] = ""
+                self._write_registry()
+                _, fallback_issues = validate_repository(self.repository_root)
+                self.assertTrue(any("fallback は空でない文字列" in issue.message for issue in fallback_issues))
 
-        self.registry["optional_references"] = [
-            {
-                "source": "alpha-skill",
-                "target": "beta-skill",
-                "locations": ["SPEC.md"],
-                "fallback": "Run the same check locally when beta-skill is absent.",
-            }
-        ]
-        self._write_registry()
-        _, valid_issues = validate_repository(self.repository_root)
-        self.assertEqual([], valid_issues)
-
-        self.registry["optional_references"][0]["fallback"] = ""
-        self._write_registry()
-        _, fallback_issues = validate_repository(self.repository_root)
-        self.assertTrue(any("fallback は空でない文字列" in issue.message for issue in fallback_issues))
-
-    def test_bare_skill_name_and_direct_path_reference_are_reported(self) -> None:
+    def test_undeclared_skill_name_and_direct_path_reference_are_reported(self) -> None:
         alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
         alpha_spec.write_text(
             alpha_spec.read_text(encoding="utf-8")
@@ -137,7 +147,7 @@ class SkillCompositionTest(unittest.TestCase):
         _, issues = validate_repository(self.repository_root)
 
         messages = [issue.message for issue in issues]
-        self.assertTrue(any("$ を付けた任意参照" in message for message in messages))
+        self.assertTrue(any("台帳にない任意参照" in message for message in messages))
         self.assertTrue(any("別のスキルへの直接パス参照" in message for message in messages))
 
     def test_dangling_repository_path_reference_is_reported(self) -> None:
@@ -152,26 +162,21 @@ class SkillCompositionTest(unittest.TestCase):
 
         self.assertTrue(any("存在しないスキルへのパス参照" in issue.message for issue in issues))
 
-    def test_only_spec_composition_heading_is_required(self) -> None:
-        alpha_skill = self.repository_root / "skills" / "alpha-skill" / "dist" / "SKILL.md"
-        self.assertNotIn(
-            "## 他のスキルとの合成",
-            alpha_skill.read_text(encoding="utf-8"),
-        )
-        _, valid_issues = validate_repository(self.repository_root)
-        self.assertEqual([], valid_issues)
-
+    def test_spec_layout_does_not_determine_composition_validity(self) -> None:
         alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
-        alpha_spec.write_text(
-            alpha_spec.read_text(encoding="utf-8").replace(
-                "## 独立性と合成", "## Composition"
-            ),
-            encoding="utf-8",
-        )
+        for content in (
+            "# Alpha\n\n## 判断基準\n\n対象の処理を単独で実行する。\n",
+            "# Alpha\n\n対象の処理を実行する。他の処理とは結果を共用できる。\n",
+        ):
+            with self.subTest(content=content):
+                alpha_spec.write_text(content, encoding="utf-8")
+                _, issues = validate_repository(self.repository_root)
+                self.assertEqual([], issues)
 
+        self.registry["pairs"] = []
+        self._write_registry()
         _, issues = validate_repository(self.repository_root)
-
-        self.assertTrue(any("合成規則の見出し" in issue.message for issue in issues))
+        self.assertTrue(any("pair がありません" in issue.message for issue in issues))
 
     def test_targeted_validation_still_checks_complete_registry(self) -> None:
         self.registry["pairs"] = []
@@ -187,8 +192,7 @@ class SkillCompositionTest(unittest.TestCase):
         (skill_root / "SPEC.md").write_text(
             f"# {skill_name} の仕様\n\n"
             "## 目的\n\n"
-            "サンプル処理を定義する。\n\n"
-            "## 独立性と合成\n\n"
+            "サンプル処理を定義する。\n"
             "単独で処理し、両立する規則を累積する。\n",
             encoding="utf-8",
         )

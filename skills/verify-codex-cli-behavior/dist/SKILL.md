@@ -1,75 +1,63 @@
 ---
 name: verify-codex-cli-behavior
-description: Codex CLI をローカル process として直接または SDK、library、wrapper 経由で使用するアプリを設計、実装、変更、レビューするときに使用する。対象版の openai/codex production source で重要挙動を確認し、固定 SHA permalink、実測、互換性対策を成果物へ残す。Codex CLI を開発道具として使うだけの作業や、CLI を起動しない OpenAI API 統合には使用しない。
+description: Codex CLI をローカル process として使うアプリの設計・実装・レビューで使用する。対象版の production source と安全な実測で重要挙動を確かめ、根拠と互換性対策を追跡可能にする。CLI を開発道具として使うだけの場合は使用しない。
 ---
 
-# Codex CLI 挙動をソースで検証する
+# Codex CLI への依存をソースと実測で確かめる
 
-## 対象と revision を確定する
+アプリの要求と integration code から、誤認すると設計や制御、互換性の判断が変わる挙動を特定する。
+対象アプリが依存しない挙動を網羅するためだけに調査しない。
 
-- 対象アプリの仕様、設定、lock file、integration code、テストから、アプリが依存する重要な Codex CLI 挙動を列挙する。
-- 引数、設定優先順位、標準入出力、JSONL event、終了コード、認証、approval、sandbox、signal、process lifecycle のうち、設計、制御、互換性、またはテストが依存する挙動だけを対象にする。
-- アプリが宣言する commit または exact version を最初に採用する。
-- 宣言から特定できなければ、アプリが実際に起動する CLI の commit または version を確認する。
-- version だけが判明した場合は、`openai/codex` の `rust-v<version>` release tag が指す commit を解決する。
-- annotated release tag は `^{commit}` または remote の peeled `^{}` reference で commit まで dereference し、tag object の SHA を permalink に使わない。
-- lightweight tag でも、tag が指す object が commit であることを確認する。
-- revision を特定できなければ、GitHub Releases の最新 stable release が指す commit を代用する。
-- prerelease は、利用者または対象アプリが明示している場合だけ採用する。
-- 代用理由を記録し、代用 revision と対象環境が一致すると断定しない。
+## 対象版を確定する
 
-## Production source を確認する
+アプリが宣言する commit または exact version を優先する。
+特定できなければ、実際に起動する CLI の版や lock file を確認する。
+version から `openai/codex` の `rust-v<version>` release tag が指す commit を解決する。
+tag は commit object まで解決し、annotated tag の tag object SHA を使わない。
+`^{commit}` または remote の peeled reference を利用できる。
 
-- 対象アプリの正本仕様と利用者の要求を、Codex CLI の source を理由に上書きしない。
-- 各重要挙動を、対象 revision の `openai/codex` production implementation で確認する。
-- 判断に必要な呼び出し元と実装先をたどる。
-- permalink を記録する前に、SHA が commit object であり、示す path と行範囲がその commit に存在することを確認する。
-- 各挙動に、次の形式で必要最小限の行範囲を示す permalink を一つ以上付ける。
+対象を特定できなければ最新 stable release を調査用に代用し、理由と対象環境の未確認を示す。
+prerelease は利用者やアプリが指定した場合に使う。
+
+## 根拠を確認する
+
+重要な挙動を、対象 revision の production implementation で確認する。
+必要な呼び出し元と実装先をたどり、実在する commit・path・行範囲を確かめる。
+根拠には、判断を支える行範囲の immutable permalink を使う。
 
 ```text
 https://github.com/openai/codex/blob/<full-40-character-commit-sha>/<path>#L<start>-L<end>
 ```
 
-- `main` などの可変 branch、tag 名、repository root、issue、pull request、文書、release notes、test code だけを根拠にしない。
-- test code、公式文書、release notes は、production implementation の補強にだけ使う。
-- source と文書または実測が異なる場合は、revision と実行条件を再確認する。
-- 不一致が残る場合は production source を実装判断で優先し、不一致と不確実性を記録する。
-- source の内部構造から将来互換性または公開契約を断定しない。
-- 公開されていない server-side semantics は、CLI 側の request、response、error handling の境界までを根拠化し、確認不能範囲を明記する。
-- GitHub 上の production implementation を確認できない重要挙動を、確認済みまたは完了として扱わない。
+公式文書やテストは解釈の補強に使い、production source の確認を置き換えない。
+CLI の実装を理由にアプリの正本仕様や利用者の要求を書き換えない。
+現在の内部実装から将来の互換性や公開契約を保証しない。
 
-## 根拠を成果物へ残す
+ソースと文書や実測が異なる場合は、revision と実行条件を調べる。
+不一致が残れば、確認した事実を分けて示して実際の挙動を断定しない。
+公開されていない server-side の意味は、CLI 側で確認できる境界までを根拠化する。
 
-変更が許可されている場合は、同じ immutable permalink を次の場所へ残す。
+## 実測と互換性を確かめる
 
-1. 対象リポジトリの規約に従い、既存の正本仕様または設計文書へ挙動、version、platform、設定条件、根拠を記録する。
-2. 適切な既存文書がなければ、`docs/codex-cli-behavior-evidence.md` を作成する。
-3. 挙動へ依存する integration code の直前または直近に、permalink を含むコメントを置く。
+安全に実行できる場合は、同じ version・platform・設定で重要な挙動を絞って観測する。
+条件差を追える確認を選び、一時 workspace と非機密の入力を使う。
+認証や外部作用が必要な操作は、既存の権限とリポジトリの規則に従う。
+実測できなければ理由と判断への影響を示し、ソース確認を実測済みとしない。
 
-- 文書へ focused verification の結果または未実施理由も記録する。
-- 対象 revision の source に根拠付ける重要挙動を version-sensitive として扱う。
-- 各重要挙動への依存には、version pin、起動時の version check、または安全側の capability fallback を設ける。
-- capability fallback を選ぶ場合は、失敗条件と利用者への通知を明確にする。
-- レビューだけを依頼された場合はファイルを変更せず、欠けている文書、近接コメント、permalink、互換性対策、実測を所見として報告する。
+ソースに根拠付けた重要な依存には、対応版の pin、起動時の version check、または安全側の capability fallback を設ける。
+fallback の失敗条件と利用者への通知を明らかにする。
+複数の依存を守る対策は共用できる。
 
-## Focused verification を行う
+## 根拠を残して報告する
 
-- 安全かつ実行可能なら、source と同じ CLI version、platform、設定で各重要挙動を絞って観測する。
-- 一つの確認で複数の条件を変えない。
-- version 表示、help、引数検査など、外部作用を必要としない確認を優先する。
-- 一時 workspace と非機密の入力を使う。
-- 認証、network access、課金、外部変更、広い filesystem access が必要な確認では、既存の権限と対象リポジトリの規則を守る。
-- command または手順、条件、終了結果、観測内容を記録する。
-- 実施できなければ、理由と判断への影響を記録する。
-- source 確認を実測済みとして扱わない。
-- 実測を別の version、platform、設定の互換性保証として扱わない。
+変更の依頼では、既存の設計文書など一箇所に根拠の詳細を集約する。
+適切な文書がなければ `docs/codex-cli-behavior-evidence.md` を作る。
+挙動と依存理由、revision、実行条件、production permalink、実測結果、不確実性を追跡できるようにする。
+integration code の必要な箇所から根拠への参照を置き、同じ詳細を複製しない。
 
-## 結果を報告する
+レビューだけの依頼ではファイルを変更しない。
+重要な依存の根拠や互換性対策を追えない場合は影響を報告し、文書名やコメントの欠落だけで挙動上の不整合と断定しない。
 
-- 重要挙動ごとに、対象 version、platform、full commit SHA、挙動、production source permalink、実測結果を要約する。
-- production implementation の permalink URL 自体を最終報告へ記載し、設計文書やコードへのリンクだけで代用しない。
-- 代用 revision、不一致、未実施の実測、確認不能範囲を明記する。
-- 更新した設計文書、近接コメント、version pin、version check、または fallback を示す。
-- 各重要挙動に production source permalink がない場合は、完了できない理由を明示する。
-- 最終応答の送信直前に、source 確認済みの各重要挙動について `https://github.com/openai/codex/blob/<full-40-character-commit-sha>/<path>#L<start>-L<end>` 形式の検証済み URL が応答本文に一つ以上あることを確認し、漏れている場合だけ追加する。
-- source 未確認の挙動には URL を作らず、未確認の理由を報告する。
+最終報告では、確認した挙動、判断に必要な条件、検証結果、根拠への参照を簡潔に示す。
+詳細を記録した文書があれば参照し、参照先がなければ報告自体に production permalink と必要な根拠を載せる。
+未確認の重要挙動は理由と影響を明記し、production source を確認できないものが残れば検証完了としない。

@@ -1,139 +1,76 @@
-# スキルの仕様
+# Python 開発を支えるスキルの仕様
 
-## 概要
+## 目的と適用場面
 
-- Python 開発環境として有用なツールの使用を推奨する
-- プロジェクトが宣言する Python のバージョン、仮想環境、依存関係管理方法、ツール設定を優先する。Python のバージョンが宣言されていない場合は Python 3.11 以上を使用する
-- Ruff と mypy が未導入の場合は、既存の開発用 dependency group や requirements file へ追加する。pytest を使用するプロジェクトでは、pytest-timeout も同じ開発依存関係へ追加する。依存関係管理方法がない場合は、リポジトリ内の `.venv` に pip で導入し、グローバル環境を変更しない
-- 検査対象の Python package、module、test command は、設定ファイル、package 構成、既存の開発手順を調査して決定する
-- 実行可能な Python の処理を作成または変更した場合は、代表経路の実行時間を実測する
-- Python の性能計測では、プロジェクト既存の方法を優先し、計測対象に応じて標準ライブラリまたは必要最小限の第三者 tool を選ぶ
+プロジェクトの構成に合う方法で Python を実装し、必要な品質を検証する。
+Python の開発、修正、レビュー、開発環境や性能計測の整備に適用する。
+レビューや検査だけの依頼では、依存や設定を自動的に変更しない。
 
-## 適用条件
+## プロジェクトの環境を使う
 
-Python プロジェクトの構成に従った実装と品質検査が必要な場合に、このスキルを使用する。
-想定する作業には、次の内容を含む。
+設定ファイルと開発手順から、Python のバージョン、依存管理、パッケージ構成、品質ゲートを確認する。
+宣言された環境を優先し、バージョンの指定がなければ Python 3.11 以上を使う。
+依存管理方法がない場合は、リポジトリ内の `.venv` を使う。
+検査は選択した interpreter から起動し、グローバル環境へ開発依存を追加しない。
 
-- Python code と package の開発または修正
-- Python code のレビュー
-- Python 開発環境の整備
-- Python 向け品質ゲートの実行または変更
-- Python の benchmark、profiler、性能回帰検査の追加または変更
+既存の検査を優先し、不足する検証に必要なツールを選ぶ。
+Ruff と mypy は、静的検査を整備する場合の候補とする。
+既存の同等ツールで足りる場合や、作業に必要がない場合は置換・追加しない。
+導入するツールは、プロジェクトの開発依存へ記録する。
 
-## 独立性と合成
+## 挙動とパッケージを検証する
 
-このスキルは、他のスキルがなくても、Python の実装、テスト、品質ゲート、代表経路の計測を完了する。
-汎用的な実装、テスト、性能スキルを、Python 作業の必須条件にしない。
+対象プロジェクトの runner とテスト構成を使う。
+pytest では、テストが触る filesystem、環境変数、作業ディレクトリなどを fixture で隔離する。
+optional な外部 executable がない場合は、理由を指定した skip を使える。
 
-他のスキルと同時に適用する場合は、Python の環境、runner、型検査、lint、resource 検査に関する詳細を追加する。
-実装とテストの簡潔性、レビューの変更範囲、性能計測の条件は、両立する規則を累積して満たす。
-同じ test、品質ゲート、代表経路の計測をスキルごとに繰り返さず、一回の実行結果を共有する。
+パッケージの公開構成や resource を変更した場合は、install 後相当の配置でも import と参照を確認する。
+source checkout から動くことだけで、配布後の構成を確認済みとしない。
 
-Python 用の開発依存を追加する場合も、対象プロジェクトの依存関係管理と、必要な外部依存だけを追加する規則を同時に満たす。
-同時に満たせない場合は、依存を追加して完了扱いにせず、競合する要求を報告する。
+停止するおそれのあるテストには、打ち切れる仕組みを用意する。
+既存の方法で不足する場合に pytest-timeout を候補とし、実測した正常時間と環境の揺らぎに合う上限を選ぶ。
+timeout の成功は、性能の確認とは区別する。
 
-## pytest と package test
+## 静的検査とリソース検査を選ぶ
 
-### goal
+lint、format、型検査は既存の設定に従う。
+検証時は書き換えなしのモードを使い、修正と検査を区別する。
+型エラーや警告を、広い除外や根拠のない型指定で隠さない。
+新たに検査を導入する場合は、既存コードの状態に合う範囲と厳しさから始める。
 
-- pytest では filesystem、HOME、cwd、環境変数を `tmp_path`、fixture、monkeypatch で隔離する
-- Python package、import path、公開 symbol、package data を変更した場合は、source checkout だけでなく install 後相当の layout でも import と resource 参照を検証する
-- optional な外部 executable を必要とする pytest は、存在を検査し、具体的な理由を指定した `pytest.mark.skipif` で skip する
-- pytest を使用するプロジェクトでは、停止、deadlock、終了しない外部 process を検出するため、pytest-timeout で全体に保守的な timeout を設定する
-- timeout 値は正常時の実測時間と実行環境の揺らぎを考慮して決める。正当に長い test には、理由を残したうえで test 単位の timeout を設定する
-- 変更中の focused test でも pytest-timeout を有効にする
-- pytest-timeout は停止検出に使用し、処理速度の合格を示す benchmark として扱わない
-- Python の実行時間を判断する場合は、project の benchmark または代表経路の wall-clock time を計測する
+リソースの寿命に関わる変更では、Python development mode と `ResourceWarning` のエラー化を検証手段にできる。
+プロジェクトがこれらを品質ゲートに定めている場合は、その設定で実行する。
+警告を除外する必要がある場合は、発生元を調べ、確認した第三者由来の警告に範囲と理由を限定する。
+リソース検査だけですべてのリークを検出できるとは保証しない。
 
-### non-goal
+## 性能について判断する
 
-- source checkout からの import 成功だけで、install 後の package 構成を検証済みとすること
-- pytest を使用していないプロジェクトへ pytest または pytest-timeout を強制すること
-- timeout に到達しないことだけで、実行時間を確認済みとすること
+性能の依頼や要件、回帰の兆候、処理量や待ち時間への影響を判断する必要がある場合は、代表経路を実測する。
+既存の benchmark を優先し、同じ条件で比較する。
+通常の変更すべてに計測を課さない。
 
-## パフォーマンス計測
+計測の目的に応じた手段の例を示す。
 
-### goal
+| 観測したいこと | 手段の例 |
+| --- | --- |
+| 代表経路の経過時間 | 既存 benchmark、`time.perf_counter_ns()` |
+| 独立した小さな処理の時間 | `timeit` |
+| 分離した反復や結果の継続比較 | `pyperf`、`pytest-benchmark` |
+| CPU 時間の内訳 | `cProfile` と `pstats`、`py-spy` |
+| allocation や memory の使用 | `tracemalloc`、Memray |
 
-- プロジェクトが管理する benchmark、profiler、計測 command、設定を最初に使用する
-- 代表経路の wall-clock time は、既存 benchmark または `time.perf_counter_ns()` などの monotonic clock で計測する
-- 小さく独立した Python 処理には `timeit` を使用する。setup、I/O、garbage collection、process startup が利用者の待ち時間に含まれる場合は、`timeit` の結果だけで代表経路を評価しない
-- process を分離した反復、warm-up、計測結果の保存と比較が必要な benchmark には `pyperf` を使用する
-- pytest project で、定量的な性能要件、安定して再現できる回帰、または既存の性能品質ゲートを継続的に検証する場合は、test 構成と両立する `pytest-benchmark` を使用する。機能上の正しさも別途検証する
-- 再現可能な短い処理の関数別 call 数と実行時間には `cProfile` と `pstats` を使用する
-- 長時間実行、thread、multiprocess、実行中 process、または計測用の code 変更を避ける CPU 調査には `py-spy` を使用する
-- Python allocation の発生箇所と snapshot 差分には `tracemalloc` を使用する
-- native extension と Python interpreter を含む allocation、peak、または一時 allocation の調査には Memray を使用する
-- memory tool は、memory 要件、allocation の症状、または実測で allocation や garbage collection の影響が疑われる場合だけ使用する
-- 目的に必要な一つ以上の観測を最小の tool 構成で満たす。候補 tool を一律に実行または導入しない
-- `pyperf`、`pytest-benchmark`、`py-spy`、Memray の選定条件を満たす場合は、小さな独自 benchmark または profiler helper を追加して第三者 tool の開発依存を回避しない
-- profiler の overhead を含む時間を benchmark 結果にしない。原因を特定した後は、profiler なしで代表経路を同じ条件で再計測する
-- 既存 tool と標準ライブラリでは必要な観測ができない場合は、選択した第三者 tool だけを既存の開発用 dependency group または requirements file へ追加し、lockfile を更新する
-- 計測 tool を runtime dependency へ追加しない。対象リポジトリが依存追加を禁止する場合は追加せず、代替した計測方法または未計測の範囲を報告する
-- 依存関係管理方法がない場合は、repository 内の `.venv` に選択した tool を導入し、global environment を変更しない
-- profile、trace、benchmark の再生成可能な出力は、対象リポジトリが正本として管理する場合だけ repository へ追加する
-- `py-spy` の attach など追加権限を必要とする操作は、権限を回避または拡大せず、許可された別の実行方法へ切り替えるか未計測として報告する
+必要な観測が得られる手段を選び、ツール名との機械的な対応で導入を決めない。
+microbenchmark の結果を、起動や I/O を含む全体の待ち時間と混同しない。
+profiler で原因を調べた後は、profiler なしで再計測する。
+追加権限が必要な計測も、許可された範囲で行う。
 
-### non-goal
+## 完了時の確認と報告
 
-- `timeit` の microbenchmark だけで end-to-end の待ち時間を確認済みとすること
-- profiler の結果を、profiler なしの実行時間または性能改善率として報告すること
-- `pyperf`、`pytest-benchmark`、`py-spy`、Memray を用途の確認なしにまとめて追加すること
-- 専用 tool が満たす反復、分離、統計、観測範囲を独自 helper で不完全に再実装すること
-- CPU または memory の問題が確認されていない通常の変更で、すべての profiler を実行すること
-- profiling のために本番 process へ無断で attach し、権限や container の security 設定を変更すること
+変更中は関連箇所の検査を使い、完了前にはプロジェクトが定める品質ゲートと full test を現在の成果物に対して実行する。
+共通ゲートがなければ、変更した挙動と利用側を検証できる範囲を選ぶ。
+未設定のツール一式を追加することを完了条件にしない。
 
-## Ruff
-
-### goal
-
-- プロジェクトの設定を使用して lint、import の整理状態、format を検査し、構文上・静的解析上の明白な不具合、未使用の import、import 順序、基本的な style 違反を機械的に検出する
-- 変更中は変更箇所に絞った検査を行う
-- 設定がない状態で Ruff を導入する場合は、小さく説明可能な rule set から始める。`noqa` が不可避な場合は対象を最小範囲に限定して理由を近傍へ残す
-
-### non-goal
-
-- Ruff の全 rule、preview rule、厳格な docstring rule を最初から一律に有効化すること
-- 広範な `noqa` や file-level ignore で Ruff の指摘を隠すこと
-
-## mypy
-
-### goal
-
-- プロジェクトの設定と package 構成から検査対象を決め、first-party の Python code に対して型の不整合、到達不能な前提、不適切な `Any` の流出、無効になった ignore を検出する
-- 変更中は変更した module とその利用側を検査する
-- 設定がない状態で mypy を導入する場合は first-party code を blocking な対象とし、既存 code の型付け状況に合わせて段階的に厳格化する。型エラーは原則として実装または型注釈を修正して解消する
-
-### non-goal
-
-- 既存 code の状態を調査せず、最初から strict mode 全体や全関数への型注釈を強制すること
-- error を隠すために、対象全体の除外、`ignore_errors`、広範な `type: ignore`、根拠のない `Any` や `cast` を追加すること
-- vendored code、生成 code、仮想環境、第三者 package まで無条件に型検査の対象とすること
-- mypy の成功を runtime test の代わりにすること
-
-## 完了ゲート
-
-### goal
-
-- 完了前には、現在の worktree に対して first-party の Python code 全体の read-only な Ruff、プロジェクトが定める全対象の mypy、full test を、少なくとも以下に相当する command で fresh に実行する
-
-```bash
-python -m ruff check {{first-party-targets}}
-python -m ruff format --check {{first-party-targets}}
-python -m mypy {{first-party-targets-or-packages}}
-PYTHONDEVMODE=1 PYTHONWARNINGS="error::ResourceWarning" python -m pytest {{project-full-test-arguments}}
-```
-
-- pytest を使用する場合は pytest-timeout を full test でも有効にする。project 固有の test runner を使用する場合も、その runner が起動する Python process へ development mode と `ResourceWarning` のエラー化を適用する
-- 第三者 library だけが発生させる warning を除外する必要がある場合は、実際の出力を根拠に module、message、warning category を用いて最小範囲に限定し、理由を記録する
-- 実行可能な処理を作成または変更した場合は、代表経路の実行時間を計測する。既存実装と比較する場合は、同じ command、入力、環境を使用する
-- profiler を使用した場合は、profiler なしの代表経路を再計測する。第三者の計測 tool を追加した場合は、選定理由と追加した開発依存を報告する
-
-### non-goal
-
-- `ResourceWarning` 以外を含む全 warning を、この Skill だけを根拠として一律にエラー化すること
-- project code による resource leak を warning filter、広範な pytest 設定、環境変数の解除によって隠すこと
-- 第三者 library の warning を、project code に原因があるか調査せず修正対象または除外対象と決めること
-- focused test の成功や過去の実行結果だけで、development mode を使用した full test が成功したと報告すること
-- development mode と `ResourceWarning` 検査だけで、すべての resource leak を検出できると保証すること
-- pytest-timeout の成功を、性能要件または性能改善の根拠として報告すること
+別の実装・テスト・性能スキルがなくても、必要な作業を完了する。
+併用する場合は、同じ検査や計測を共用する。
+実行した検査と結果、検証できなかった範囲を報告する。
+性能を判断した場合は実測値と条件を、ツールを追加した場合はその必要性を添える。

@@ -2,7 +2,8 @@
 
 Nu-Pan が管理する Codex スキルを集約したモノレポです。
 各スキルの仕様、開発用文書、インストール可能な配布物を `skills/` 配下で管理します。
-各スキルは単独で成立し、任意の複数スキルを同時に導入した場合も、適用される規則を累積して実行できるように管理します。
+各スキルは単独でも組み合わせても使えるように管理します。
+必要な要件と設計意図を保ち、読み手が判断しやすい説明と実装を重視します。
 
 全スキルに共通する構造と保守方法は、[`docs/skill-repository-spec.md`](docs/skill-repository-spec.md) に定義しています。
 新規スキルは、[`docs/adding-a-skill.md`](docs/adding-a-skill.md) の手順で追加します。
@@ -11,34 +12,28 @@ Nu-Pan が管理する Codex スキルを集約したモノレポです。
 
 ## 収録スキル
 
-- [`japanese-writing-skill`](skills/japanese-writing-skill/README.md): 日本語の技術文書を明確に構成するスキルです。
-- [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 代表経路を実測し、現行仕様に必要な実装だけを簡潔で保守しやすい状態に保つスキルです。
-- [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 意味のある挙動と実測済みの性能回帰を検証し、重複や旧仕様のテストを整理するスキルです。
-- [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 重要な人間意図と裁量範囲を明確にし、正本仕様を保守するスキルです。
-- [`measure-runtime-performance`](skills/measure-runtime-performance/README.md): 必要な計測 tool を選び、代表経路の実測で確認したボトルネックだけを改善するスキルです。
-- [`python-dev-skill`](skills/python-dev-skill/README.md): Python プロジェクトの構成と用途に合わせて benchmark・profiler を選び、実装と品質検査を行うスキルです。
-- [`review-specification-conformance`](skills/review-specification-conformance/README.md): 正本仕様の矛盾と仕様に対する実装の不整合をレビューするスキルです。
-- [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの目的と判断から、変更全体の高レベルな意味を表すコミットメッセージを提案するスキルです。
-- [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): Codex CLI と OpenAI Structured Outputs 向けの JSON Schema をオフライン検証するスキルです。
-- [`verify-codex-cli-behavior`](skills/verify-codex-cli-behavior/README.md): 対象版の Codex CLI 挙動を GitHub の実装本体で確認して根拠を残すスキルです。
+- [`japanese-writing-skill`](skills/japanese-writing-skill/README.md): 日本語の技術文書を、意図と判断基準が伝わる説明へ組み直します。
+- [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 必要な要件を保ち、関連する実装を読み取りやすく変更しやすい構成へ組み直します。
+- [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 回帰検出能力を保ち、検証の意図を読み取りやすいテストへ整理します。
+- [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 利用者の要求を関連する正本仕様へ統合し、必要な要件と設計意図を判断しやすい形で保ちます。
+- [`measure-runtime-performance`](skills/measure-runtime-performance/README.md): 性能の判断に必要な観測を選び、比較可能な実測値から原因と改善結果を確かめます。
+- [`python-dev-skill`](skills/python-dev-skill/README.md): 既存の Python 環境と品質ゲートを優先し、変更の判断に必要な検証手段を選びます。
+- [`review-specification-conformance`](skills/review-specification-conformance/README.md): 必要な判断を妨げる仕様や実装の問題を、確認済みの根拠で報告します。
+- [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの意図から、未コミット変更全体の主題を一行で伝えるコミットメッセージを提案します。
+- [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): OpenAI Structured Outputs 用の JSON Schema を、配布 CLI でバージョン付きプロファイルへ照合します。
+- [`verify-codex-cli-behavior`](skills/verify-codex-cli-behavior/README.md): アプリが依存する Codex CLI の挙動を対象版のソースと安全な実測で調べ、根拠と互換性対策を追跡可能にします。
 
 ## インストール
 
 スキルは、共通インストールスクリプトで個別または一括インストールできます。
 このリポジトリのルートで、スキル名と導入先ディレクトリを指定します。
-1 つのスキルをインストールするコマンドの書式を次に示します。
+個別に導入する場合は、スキル名を指定します。
 
 ```bash
 python3 scripts/install_skill.py {{skill-name}} {{target-repository}}
 ```
 
-`japanese-writing-skill` をインストールする例を次に示します。
-
-```bash
-python3 scripts/install_skill.py japanese-writing-skill /absolute/path/to/repository
-```
-
-全スキルを一括インストールするコマンドの書式を次に示します。
+全スキルを導入する場合は、`all` を指定します。
 
 ```bash
 python3 scripts/install_skill.py all {{target-repository}}
@@ -65,8 +60,7 @@ Git リポジトリであることは必須ではありません。
 ${{skill-name}} を使って、依頼内容を実行してください。
 ```
 
-各スキルの概要と仕様へのリンクは、[収録スキル](#収録スキル)から各スキルの `README.md` を参照してください。
-固有の保守規則があるスキルでは、そのスキルの `AGENTS.md` も参照します。
+適用場面と固有の振る舞いは、[収録スキル](#収録スキル)から各スキルの仕様を参照してください。
 
 ## 開発
 

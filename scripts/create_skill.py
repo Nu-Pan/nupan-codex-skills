@@ -59,24 +59,17 @@ def _spec_template(skill_name: str) -> str:
 
 {{{{todo-skill-goal-and-success-criteria}}}}
 
-このファイルは、`{skill_name}` のスキル仕様の正本である。
-実行時仕様を変更するときは、先にこのファイルを変更する。
-
 ## 適用条件
 
 {{{{todo-skill-usage-scenarios}}}}
-
-## 対象外
-
-{{{{todo-out-of-scope-requests-and-scenarios}}}}
 
 ## 入力と前提
 
 {{{{todo-required-inputs-constraints-and-priorities}}}}
 
-## 独立性と合成
+## 判断原則
 
-{{{{todo-standalone-and-composition-rules}}}}
+{{{{todo-decision-principles-and-rationale}}}}
 
 ## 実行時の規則
 
@@ -112,7 +105,7 @@ description: "{{{{todo-skill-capability-and-usage-conditions}}}}"
 
 ## 実行
 
-{{{{todo-runtime-imperative-instructions}}}}
+{{{{todo-runtime-instructions-and-guidance}}}}
 """
 
 

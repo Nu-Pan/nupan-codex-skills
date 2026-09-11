@@ -19,7 +19,6 @@ MAX_SHORT_DESCRIPTION_LENGTH = 64
 ALL_SKILLS_SELECTOR = "all"
 
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-FRONTMATTER_KEY_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]+(.*))?$")
 INTERFACE_VALUE_PATTERN = re.compile(r"^  ([A-Za-z0-9_-]+):[ \t]+(.+)$")
 UNRESOLVED_PLACEHOLDER_PATTERN = re.compile(
     r"\{\{todo-[a-z0-9]+(?:-[a-z0-9]+)*\}\}"
@@ -207,6 +206,15 @@ def _validate_text_files(paths: Iterable[Path]) -> list[ValidationIssue]:
 def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
     import yaml
 
+    class UniqueKeyLoader(yaml.SafeLoader):
+        def construct_mapping(self, node, deep=False):
+            mapping = super().construct_mapping(node, deep=deep)
+            if len(mapping) != len(node.value):
+                raise yaml.constructor.ConstructorError(
+                    None, None, "frontmatter のキーが重複しています", node.start_mark
+                )
+            return mapping
+
     content, read_issue = _read_text(path)
     if read_issue:
         return [read_issue]
@@ -224,7 +232,7 @@ def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
 
     frontmatter = "\n".join(lines[1:closing_index])
     try:
-        parsed_frontmatter = yaml.safe_load(frontmatter)
+        parsed_frontmatter = yaml.load(frontmatter, Loader=UniqueKeyLoader)
     except yaml.YAMLError as error:
         problem = getattr(error, "problem", None)
         detail = f": {problem}" if problem else ""
@@ -241,40 +249,29 @@ def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
     if not isinstance(parsed_frontmatter, dict):
         return [ValidationIssue(path, "YAML frontmatter は mapping として記載してください")]
 
-    values: dict[str, str] = {}
-    for line in lines[1:closing_index]:
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if line[0].isspace():
-            issues.append(ValidationIssue(path, "frontmatter の値は 1 行で記載してください"))
-            continue
-        match = FRONTMATTER_KEY_PATTERN.fullmatch(line)
-        if not match:
-            issues.append(ValidationIssue(path, f"frontmatter の行を解釈できません: {line}"))
-            continue
-        key, raw_value = match.groups()
-        if key in values:
-            issues.append(ValidationIssue(path, f"frontmatter の {key} が重複しています"))
-            continue
-        values[key] = _decode_scalar(raw_value or "")
-
     expected_keys = {"name", "description"}
-    missing_keys = expected_keys - values.keys()
-    unexpected_keys = values.keys() - expected_keys
+    missing_keys = expected_keys - parsed_frontmatter.keys()
+    unexpected_keys = parsed_frontmatter.keys() - expected_keys
     for key in sorted(missing_keys):
         issues.append(ValidationIssue(path, f"frontmatter に {key} がありません"))
-    for key in sorted(unexpected_keys):
+    for key in sorted(unexpected_keys, key=str):
         issues.append(ValidationIssue(path, f"frontmatter に不要な {key} があります"))
 
-    name = values.get("name", "").strip()
-    if "name" in values and not name:
-        issues.append(ValidationIssue(path, "name を空にできません"))
-    elif name and name != skill_name:
+    values: dict[str, str] = {}
+    for key in sorted(expected_keys & parsed_frontmatter.keys()):
+        value = parsed_frontmatter[key]
+        if value is None or isinstance(value, str) and not value.strip():
+            issues.append(ValidationIssue(path, f"{key} を空にできません"))
+        elif not isinstance(value, str):
+            issues.append(ValidationIssue(path, f"{key} は文字列にしてください"))
+        else:
+            values[key] = value.strip()
+
+    name = values.get("name", "")
+    if name and name != skill_name:
         issues.append(ValidationIssue(path, f"name を {skill_name} と一致させてください"))
 
-    description = values.get("description", "").strip()
-    if "description" in values and not description:
-        issues.append(ValidationIssue(path, "description を空にできません"))
+    description = values.get("description", "")
     if len(description) > MAX_DESCRIPTION_LENGTH:
         issues.append(
             ValidationIssue(path, f"description は {MAX_DESCRIPTION_LENGTH} 文字以内にしてください")

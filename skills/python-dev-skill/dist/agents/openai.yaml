@@ -1,4 +1,4 @@
 interface:
-  display_name: "Python Tooling and Quality Gates"
-  short_description: "Select Python performance tools and apply quality gates"
-  default_prompt: "Use $python-dev-skill to implement this Python change, select the appropriate benchmark or profiler, measure affected paths, and run the project's Python quality gates."
+  display_name: "Python の開発と品質検査"
+  short_description: "既存の Python 環境と品質ゲートを優先し、必要な検証手段を選ぶ"
+  default_prompt: "$python-dev-skill を使って、この Python の変更を実装し、プロジェクトに合う方法で検証してください。"

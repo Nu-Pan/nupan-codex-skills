@@ -12,7 +12,6 @@ from typing import Any, Iterable
 
 COMPOSITION_FILE_NAME = "skill-composition.json"
 COMPOSITION_VERSION = 1
-SPEC_COMPOSITION_HEADING = "## 独立性と合成"
 
 ROOT_KEYS = {
     "version",
@@ -57,12 +56,12 @@ def validate_skill_composition(
 
     data = _load_registry(registry_path, issues)
     if data is None:
-        issues.extend(_validate_spec_composition_headings(repository_root, names))
         issues.extend(_validate_repository_path_references(repository_root, names))
         return issues
 
     _validate_exact_keys(data, ROOT_KEYS, registry_path, "ルート object", issues)
-    if data.get("version") != COMPOSITION_VERSION:
+    version = data.get("version")
+    if type(version) is not int or version != COMPOSITION_VERSION:
         issues.append(
             (
                 registry_path,
@@ -97,7 +96,6 @@ def validate_skill_composition(
         if scenario_skills != sorted(scenario_skills):
             issues.append((registry_path, "standalone_scenarios を skill の名前順にしてください"))
 
-    issues.extend(_validate_spec_composition_headings(repository_root, names))
     issues.extend(_validate_repository_path_references(repository_root, names))
     issues.extend(
         _validate_cross_skill_references(
@@ -451,29 +449,6 @@ def _validate_pairs(
         issues.append((path, f"どの overlap pair からも参照されないシナリオがあります: {scenario_id}"))
 
 
-def _validate_spec_composition_headings(
-    repository_root: Path,
-    skill_names: list[str],
-) -> list[CompositionIssue]:
-    issues: list[CompositionIssue] = []
-    for skill_name in skill_names:
-        spec_path = repository_root / "skills" / skill_name / "SPEC.md"
-        if not spec_path.is_file():
-            continue
-        try:
-            lines = spec_path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError):
-            continue
-        if SPEC_COMPOSITION_HEADING not in lines:
-            issues.append(
-                (
-                    spec_path,
-                    f"合成規則の見出し {SPEC_COMPOSITION_HEADING} がありません",
-                )
-            )
-    return issues
-
-
 def _repository_text_paths(repository_root: Path, skill_names: list[str]) -> list[Path]:
     paths: set[Path] = set()
     for path in (repository_root / "AGENTS.md", repository_root / "README.md"):
@@ -567,18 +542,10 @@ def _validate_cross_skill_references(
             if target == owner:
                 continue
             target_pattern = re.compile(
-                rf"(?<![A-Za-z0-9-])(\$?){re.escape(target)}(?![A-Za-z0-9-])"
+                rf"(?<![A-Za-z0-9-])\$?{re.escape(target)}(?![A-Za-z0-9-])"
             )
-            for match in target_pattern.finditer(content):
+            if target_pattern.search(content):
                 key = (owner, target, relative_path)
-                if match.group(1) != "$":
-                    issues.append(
-                        (
-                            path,
-                            f"別のスキル名は $ を付けた任意参照として記載してください: {target}",
-                        )
-                    )
-                    continue
                 observed.add(key)
                 if key not in declared:
                     issues.append(

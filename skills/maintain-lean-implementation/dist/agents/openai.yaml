@@ -1,4 +1,4 @@
 interface:
   display_name: "簡潔で保守しやすい実装を維持"
-  short_description: "重複と不要物を抑え、代表経路を実測して必要な実装だけを保つ"
-  default_prompt: "$maintain-lean-implementation を使って、代表経路を実測し、現行仕様に必要な実装だけが残るように変更してください。"
+  short_description: "必要な要件を保ち、関連する実装を読み取りやすい構成へ組み直す"
+  default_prompt: "$maintain-lean-implementation を使って、現行仕様を満たし、読み取りやすく変更しやすい実装へ整理してください。"
