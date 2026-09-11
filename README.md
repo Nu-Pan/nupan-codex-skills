@@ -1,15 +1,10 @@
 # nupan-codex-skills
 
-Nu-Pan が管理する Codex スキルを集約したモノレポです。
-各スキルの仕様、開発用文書、インストール可能な配布物を `skills/` 配下で管理します。
-各スキルは単独でも組み合わせても使えます。
-必要な要件と設計意図を軸に、関連する説明や実装を一体として組み直します。
-読み手が原則を理解し、個別の場面で判断できることを重視します。
+Nu-Pan が管理する Codex スキルのリポジトリです。各スキルの仕様と配布物を `skills/` 配下で管理し、単独でも組み合わせても使えるようにしています。
 
-全スキルに共通する構造と保守方法は、[`docs/skill-repository-spec.md`](docs/skill-repository-spec.md) に定義しています。
-新規スキルは、[`docs/adding-a-skill.md`](docs/adding-a-skill.md) の手順で追加します。
-開発環境の構築方法とテストの実行規約は、[`docs/development-environment.md`](docs/development-environment.md) に定義しています。
-単独評価と組み合わせ評価の台帳は、[`skill-composition.json`](skill-composition.json) に記録しています。
+必要な要件と設計意図を軸に、関連する説明や実装を一体として組み直します。読み手が原則を理解し、個別の場面で判断できることを重視します。
+
+保守では [共通仕様](docs/skill-repository-spec.md) に従い、[追加手順](docs/adding-a-skill.md)と[開発環境の規約](docs/development-environment.md)を参照してください。単独・組み合わせ評価の条件は、[評価台帳](skill-composition.json)に記録しています。
 
 ## 収録スキル
 
@@ -38,16 +33,11 @@ python3 scripts/install_skill.py {{skill-name}} {{target-repository}}
 python3 scripts/install_skill.py all {{target-repository}}
 ```
 
-導入先には、既存のディレクトリを相対パスまたは絶対パスで指定できます。
-Git リポジトリであることは必須ではありません。
-配布物は、`{{target-repository}}/.agents/skills/{{skill-name}}/` に配置されます。
+導入先には既存のディレクトリを相対パスまたは絶対パスで指定します。Git リポジトリである必要はありません。配布物は `{{target-repository}}/.agents/skills/{{skill-name}}/` に配置されます。
 
-同名スキルがすでに存在する場合は、配布物全体を置き換えます。
-導入先で加えた変更や、旧版だけに存在するファイルは残りません。
-一括インストールは、このリポジトリに収録したスキルを更新します。
-導入先にだけ存在するスキルは保ち、導入先とすべての配布物を変更前に検証します。
-処理途中で失敗した場合は、処理中のスキルを既存版へ復元します。
-それ以前にインストールしたスキルは、新しい配布物のまま残ります。
+同名スキルは配布物全体を置き換えるため、導入先で加えた変更や旧版だけのファイルは残りません。一括インストールでは導入先とすべての配布物を変更前に検証し、このリポジトリに収録したスキルを更新します。導入先にだけ存在するスキルは保ちます。
+
+入れ替えに失敗すると、処理中のスキルを既存版へ復元して中止します。それ以前に導入したスキルは新版のまま残ります。
 
 ## 使用方法
 
