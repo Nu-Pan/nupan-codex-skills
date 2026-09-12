@@ -51,20 +51,6 @@
       ]
     },
     {
-      "id": "runtime-performance-standalone",
-      "skill": "measure-runtime-performance",
-      "request": "app.py の代表経路が遅いため、入力 data.json を使って原因を調べ、SPEC.md の挙動を保って改善・再計測してください。既存の計測手順はありません。",
-      "expected": [
-        "比較可能な条件で baseline と変更後を実測し、正しさも確認する。",
-        "実測で特定した原因を改善し、値と計測条件を報告する。",
-        "必要な観測と保守負担から計測手段を選び、単独で完了する。"
-      ],
-      "forbidden": [
-        "推測だけで最適化したり、profiler の時間を通常実行の改善率に使ったりする。",
-        "固定秒数やツール名だけで調査や依存追加を決める。"
-      ]
-    },
-    {
       "id": "python-development-standalone",
       "skill": "python-dev-skill",
       "request": "この Python プロジェクトの app.py が遅くなっています。data.json の代表経路を調査・修正し、既存の開発手順に沿って検証してください。",
@@ -195,7 +181,6 @@
       "skills": [
         "maintain-lean-implementation",
         "maintain-lean-tests",
-        "measure-runtime-performance",
         "python-dev-skill",
         "review-specification-conformance"
       ],
@@ -217,7 +202,6 @@
         "maintain-lean-implementation",
         "maintain-lean-tests",
         "maintain-software-specifications",
-        "measure-runtime-performance",
         "python-dev-skill"
       ],
       "request": "SPEC.md を更新して app.py に入力件数を制限する --limit option と継続管理する benchmark を追加してください。指定がなければ従来どおり全件を処理し、非負の整数だけを受け付けてください。テストと既存の品質ゲート、代表経路の計測も実行してください。",
@@ -237,7 +221,6 @@
       "skills": [
         "maintain-lean-implementation",
         "maintain-lean-tests",
-        "measure-runtime-performance",
         "python-dev-skill"
       ],
       "request": "app.py の表示ラベルを SPEC.md の指定どおりに修正し、必要なテストと既存の品質ゲートで確認してください。",
@@ -320,15 +303,6 @@
       ]
     },
     {
-      "skills": ["maintain-lean-implementation", "measure-runtime-performance"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-conformance-review-fix",
-        "python-feature-change",
-        "python-small-change"
-      ]
-    },
-    {
       "skills": ["maintain-lean-implementation", "python-dev-skill"],
       "relation": "overlap",
       "scenario_ids": [
@@ -374,15 +348,6 @@
       ]
     },
     {
-      "skills": ["maintain-lean-tests", "measure-runtime-performance"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-conformance-review-fix",
-        "python-feature-change",
-        "python-small-change"
-      ]
-    },
-    {
       "skills": ["maintain-lean-tests", "python-dev-skill"],
       "relation": "overlap",
       "scenario_ids": [
@@ -410,11 +375,6 @@
     },
     {
       "skills": ["maintain-lean-tests", "verify-codex-cli-behavior"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["maintain-software-specifications", "measure-runtime-performance"],
       "relation": "orthogonal",
       "scenario_ids": []
     },
@@ -450,37 +410,6 @@
       "scenario_ids": [
         "codex-cli-output-schema-source-evidence"
       ]
-    },
-    {
-      "skills": ["measure-runtime-performance", "python-dev-skill"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-conformance-review-fix",
-        "python-feature-change",
-        "python-small-change"
-      ]
-    },
-    {
-      "skills": ["measure-runtime-performance", "review-specification-conformance"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-conformance-review-fix"
-      ]
-    },
-    {
-      "skills": ["measure-runtime-performance", "suggest-commit-message"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["measure-runtime-performance", "validate-openai-structured-output-schema"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["measure-runtime-performance", "verify-codex-cli-behavior"],
-      "relation": "orthogonal",
-      "scenario_ids": []
     },
     {
       "skills": ["python-dev-skill", "review-specification-conformance"],

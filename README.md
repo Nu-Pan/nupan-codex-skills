@@ -11,7 +11,6 @@ Nu-Pan が管理する Codex スキルのリポジトリです。各スキルの
 - [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 必要な要件を保ち、関連する実装を読み取りやすく変更しやすい構成へ組み直します。
 - [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 回帰検出能力を保ち、検証の意図を読み取りやすいテストへ整理します。
 - [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 正本仕様の作成・改訂・推敲で、要求の選別から構成と文章表現までを扱い、要件と設計意図に基づいて判断できる説明に整えます。
-- [`measure-runtime-performance`](skills/measure-runtime-performance/README.md): 性能の判断に必要な観測を選び、比較可能な実測値から原因と改善結果を確かめます。
 - [`python-dev-skill`](skills/python-dev-skill/README.md): 既存の Python 環境と品質ゲートを優先し、変更の判断に必要な検証手段を選びます。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 必要な判断を妨げる仕様や実装の問題を、確認済みの根拠で報告します。
 - [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの意図から、未コミット変更全体の主題を一行で伝えるコミットメッセージを提案します。
