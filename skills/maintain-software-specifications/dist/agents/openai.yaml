@@ -1,4 +1,4 @@
 interface:
-  display_name: "ソフトウェア正本仕様を保守"
-  short_description: "利用者の要求を関連仕様へ統合し、要件と設計意図に基づいて判断しやすい説明に整える"
-  default_prompt: "$maintain-software-specifications を使って、利用者の要求を関連する正本仕様へ統合し、現在の意図が伝わる形へ組み直してください。"
+  display_name: "ソフトウェア正本仕様を作成・改訂"
+  short_description: "正本仕様の作成・改訂・推敲を通じて、要求と設計意図に基づいて判断できる説明に整える"
+  default_prompt: "$maintain-software-specifications を使って、ソフトウェアの正本仕様を作成・改訂・推敲し、必要な要件と設計意図が伝わる説明に整えてください。"
