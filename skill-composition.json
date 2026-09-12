@@ -115,7 +115,7 @@
       "request": "$suggest-commit-message",
       "expected": [
         "裸の呼び出しを提案依頼として扱う。",
-        "セッションの意図がない場合は、目的を簡潔に質問してから提案する。"
+        "セッションで確認できる意図と現在の変更に基づいて応答し、根拠のない目的や効果を作らない。"
       ],
       "forbidden": [
         "Git 差分を欠けた人間意図の代わりにしてメッセージを作る。",
@@ -125,10 +125,11 @@
     {
       "id": "structured-output-validation-standalone",
       "skill": "validate-openai-structured-output-schema",
-      "request": "schema.json は OpenAI Structured Outputs 用です。オフライン検証し、CONTRACT.md の契約を保って不整合を修正してください。",
+      "request": "CONTRACT.md に従って、OpenAI Structured Outputs 用の schema.json に処理件数を表す count を追加してください。",
       "expected": [
         "配布 CLI で診断し、関連する定義も含めて契約を保った修正を行う。",
-        "同じプロファイルで再検証し、対象と結果を報告する。"
+        "同じプロファイルで再検証し、対象と結果を報告する。",
+        "スキーマ変更の依頼に含まれる不整合の解消まで行い、要求された契約を満たす。"
       ],
       "forbidden": [
         "別のスキルやリモート呼び出しを必須にする。",
@@ -143,13 +144,15 @@
         "インストール済み CLI の版を確認し、対応する revision を commit object まで確定して、重要な依存を固定 SHA の production permalink へ結び付ける。",
         "ソースと実測を区別し、互換性対策と未確認範囲を報告する。",
         "既存の根拠を追跡できれば、同じ文面や URL を複数箇所へ複製させない。",
-        "リポジトリの配置に合わせて根拠の詳細を集約し、integration code と最終報告から追跡できるようにする。"
+        "リポジトリの配置に合わせて根拠の詳細を集約し、integration code と最終報告から追跡できるようにする。",
+        "互換性対策は、依存する挙動と要求に照らして評価する。"
       ],
       "forbidden": [
         "文書やテストだけで production source の確認を代用する。",
         "ソースと実測の不一致を隠す、または異なる条件の確認を互換性保証にする。",
         "特定の文書名や近接コメントの欠落だけを挙動の不整合とする。",
-        "検証根拠を記録する依頼だけで、アプリの挙動や契約を修正する。"
+        "検証根拠を記録する依頼だけで、アプリの挙動や契約を修正する。",
+        "互換性対策がスキルの例示にない方式であることだけを理由に、不適合とする。"
       ]
     }
   ],
@@ -169,14 +172,35 @@
       "expected": [
         "正本要求、CLI の実装根拠、schema の診断を区別して判断する。",
         "インストール済み CLI と同じ版の production source を固定 SHA の permalink で示し、実測・未確認範囲・互換性対策を追跡できる形で報告する。",
-        "配布 validator と既存の Python 品質ゲートを使い、同じ調査や検証を共用する。",
+        "配布 validator と既存の Python 品質ゲートを使い、同じ調査や検証を共用する。プロファイルのオフライン検査と CLI の挙動の実測を、それぞれの目的に応じて行う。",
         "要点と根拠を読み取りやすい日本語で伝え、確認した挙動とアプリの判断への影響を、関係に合う文頭の接続詞でつないで説明する。その際、CLI とアプリの行為や状態を区別し、主体と条件・結果の関係を自然にたどれる形にする。検証対象や比較条件、参照先が読み取れる表現を選び、未確認の関係を推測で補わない。"
       ],
       "forbidden": [
         "好みや特定の文言の欠落だけを仕様の不整合にする。",
         "同じ URL を文書・コメント・応答へ複製することを完了条件にする。",
         "レビューを理由にファイルや依存を変更する。",
-        "ソース確認と実測を混同する。"
+        "ソース確認と実測を混同する。",
+        "プロファイル検査のオフライン規則を理由に、依頼された CLI の挙動の実測を省略する。"
+      ]
+    },
+    {
+      "id": "codex-cli-structured-output-implementation",
+      "skills": [
+        "maintain-lean-implementation",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior"
+      ],
+      "request": "SPEC.md に従って、構造化した処理結果をファイルへ保存する機能を integration.py と schema.json に実装してください。この環境にインストールされている Codex CLI をそのまま使い、その版の GitHub ソースと安全な実測で動作を確かめ、根拠を成果物へ残してください。",
+      "expected": [
+        "実装依頼に含まれる CLI 連携とスキーマの不整合を解消し、契約に従う保存機能を完成させる。",
+        "配布 CLI によるプロファイル適合検査と、対象版のソース確認、CLI の挙動の実測を行い、同じ調査や検証を共用する。",
+        "互換性を保つ対策を要求と確認した挙動に基づいて選び、根拠と対応内容、検証結果を報告する。"
+      ],
+      "forbidden": [
+        "実装に必要な不整合の解消を、別途の修正依頼がないことを理由に報告だけで終える。",
+        "プロファイル検査のオフライン規則を、CLI 連携の実測全体の禁止として扱う。",
+        "互換性対策をスキルに例示された三方式だけに限定する。",
+        "スキーマや CLI に合わせるために、アプリの契約を弱める。"
       ]
     },
     {
@@ -435,6 +459,7 @@
       "skills": ["maintain-lean-implementation", "validate-openai-structured-output-schema"],
       "relation": "overlap",
       "scenario_ids": [
+        "codex-cli-structured-output-implementation",
         "structured-output-contract-review-fix"
       ]
     },
@@ -442,7 +467,8 @@
       "skills": ["maintain-lean-implementation", "verify-codex-cli-behavior"],
       "relation": "overlap",
       "scenario_ids": [
-        "codex-cli-output-schema-source-evidence"
+        "codex-cli-output-schema-source-evidence",
+        "codex-cli-structured-output-implementation"
       ]
     },
     {
@@ -618,7 +644,8 @@
       "skills": ["validate-openai-structured-output-schema", "verify-codex-cli-behavior"],
       "relation": "overlap",
       "scenario_ids": [
-        "codex-cli-output-schema-source-evidence"
+        "codex-cli-output-schema-source-evidence",
+        "codex-cli-structured-output-implementation"
       ]
     }
   ]
