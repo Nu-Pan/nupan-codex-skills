@@ -16,7 +16,7 @@ Nu-Pan が管理する Codex スキルのリポジトリです。各スキルの
 - [`python-dev-skill`](skills/python-dev-skill/README.md): 既存の Python 環境と品質ゲートを優先し、変更の判断に必要な検証手段を選びます。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 必要な判断を妨げる仕様や実装の問題を、確認済みの根拠で報告します。
 - [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの意図から、未コミット変更全体の主題を一行で伝えるコミットメッセージを提案します。
-- [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): OpenAI Structured Outputs 用の JSON Schema を、配布 CLI でバージョン付きプロファイルへ照合します。
+- [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): OpenAI Structured Outputs 用の JSON Schema を、付属の検証コマンドでバージョン付きの検証規則と照合します。
 - [`verify-codex-cli-behavior`](skills/verify-codex-cli-behavior/README.md): アプリが依存する Codex CLI の挙動を対象版のソースと安全な実測で調べ、根拠と互換性対策を追跡可能にします。
 
 ## インストール

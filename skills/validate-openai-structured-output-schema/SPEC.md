@@ -4,11 +4,11 @@
 
 OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフラインで検証する。また、Codex CLI の `--output-schema` へ渡すスキーマの作成・変更・レビューにも適用する。ただし、JSON Schema 一般や、生成済みのデータがスキーマに適合するかどうかの検証には使わない。
 
-利用者が指定したファイルを優先し、指定がなければ呼び出し元や設定から用途を確かめて対象を特定する。そのうえで、配布 CLI で診断し、許可された修正を行う。ただし、結果はバージョン付きプロファイルへの適合を示すもので、リモートサービスの受理を保証しない。
+利用者が指定したファイルを優先し、指定がなければスキーマの呼び出し元や設定から用途を確かめ、対象ファイルを特定する。そのうえで、このスキルに付属する検証コマンド（配布 CLI）で診断し、許可された修正を行う。診断結果は、検証規則をまとめたバージョン付きプロファイルへの適合性を示す。ただし、プロファイルに適合しても、リモートサービスがスキーマを受理するとは限らない。
 
 ## プロファイル
 
-検証規則をまとめたプロファイルは `openai-structured-outputs-2026-08` だけとし、既定で使う。許可リストにないキーワードはエラーにする。プロファイルの確認日は `2026-08-10`、根拠は次の公式文書とする。
+使用できるプロファイルは `openai-structured-outputs-2026-08` だけとし、指定がなければこのプロファイルを使う。許可リストにないキーワードはエラーにする。このプロファイルは、`2026-08-10` に確認した次の公式文書を根拠とする。
 
 - [Structured model outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
 - [Non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)
@@ -21,11 +21,11 @@ OpenAI Structured Outputs 用の JSON Schema を、API 呼び出し前にオフ�
 
 入力は UTF-8 の JSON 文書とし、重複キー、`NaN`、`Infinity`、`-Infinity` を受理しない。また、スキーマの各ノードは JSON オブジェクトとし、真偽値で表すスキーマは受理しない。
 
-ルートは、`type` の値が文字列の `object` であるスキーマとする。ルートでの `anyOf` と、`null` を許容する型指定は受理しない。
+ルートは、`type` の値に文字列 `"object"` を指定したスキーマとする。ルートでの `anyOf` と、`null` を許容する型指定は受理しない。
 
 ### 型と構成
 
-単一型として許可するのは、`string`、`number`、`integer`、`boolean`、`object`、`array`、`null` とする。配列形式の `type` は、`null` を許容する型（nullable）を表すために使い、`null` とそれ以外の一つの型を重複なく指定する。
+単一型として許可するのは、`string`、`number`、`integer`、`boolean`、`object`、`array`、`null` とする。一方、配列形式の `type` は、`null` を許容する型（nullable）を表す場合に使い、`null` とそれ以外の一つの型を重複なく指定する。
 
 ルート以外では `anyOf` を使える。ただし、分岐には一つ以上のスキーマオブジェクトを指定し、各分岐も同じプロファイルに適合する必要がある。
 
@@ -99,7 +99,7 @@ python3 <skill-root>/scripts/validate_schema.py \
 | `1` | UTF-8、JSON 文法、またはスキーマの違反を検出した。 |
 | `2` | 引数、プロファイル、ファイル読み込み、または内部処理のエラーが発生した。 |
 
-検出可能な違反をすべて集め、`schemaPointer`、`code`、`message`、`details` の順に比較して、診断を常に同じ順序で並べる。ルートの `schemaPointer` は `/` とする。
+配布 CLI は検出可能な違反をすべて集め、診断を常に同じ順序で並べる。並べる順序は、`schemaPointer`、`code`、`message`、`details` をこの優先順で比較して決める。また、ルートを指す `schemaPointer` は `/` とする。
 
 JSON 出力は `profile`、`path`、`valid`、`errors` を持つオブジェクトとし、`errors` の各診断は `code`、`schemaPointer`、`message`、`details` を持つ。次に、`properties` にある `status` が `required` から漏れている場合の出力例を示す。
 
@@ -126,7 +126,7 @@ JSON 出力は `profile`、`path`、`valid`、`errors` を持つオブジェク�
 
 ## 診断を解消する
 
-対象ごとに配布 CLI を実行し、全診断を確認する。配布 CLI は固有の許可リストと上限を検査するため、一般の JSON Schema 検証ツールが成功したことでは、この検証を代用しない。API や Codex CLI を呼び出さずに検証する。
+対象ファイルごとに配布 CLI を実行し、全診断を確認する。この CLI は固有の許可リストと上限を検査するため、一般の JSON Schema 検証ツールが成功しても、この検証を代用したことにはならない。検証はオフラインで行い、API や Codex CLI を呼び出さない。
 
 修正の依頼では、診断箇所と関連する定義を一緒に読み、意図する契約を保って不整合を解消する。契約の根拠はアプリの正本に、プロファイル適合性の根拠は診断結果に求める。そのうえで、修正後は同じプロファイルで再検証する。一方、レビューだけの依頼ではファイルを変更しない。
 

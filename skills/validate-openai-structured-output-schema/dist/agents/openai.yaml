@@ -1,4 +1,4 @@
 interface:
   display_name: "Structured Outputs のスキーマを検証"
-  short_description: "配布 CLI を使い、スキーマをバージョン付きプロファイルと照合する"
+  short_description: "付属の検証コマンドで、スキーマをバージョン付きの検証規則と照合する"
   default_prompt: "$validate-openai-structured-output-schema を使って、OpenAI Structured Outputs 用のスキーマをオフラインで検証してください。"
