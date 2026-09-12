@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "optional_references": [],
   "standalone_scenarios": [
     {
@@ -48,19 +48,6 @@
         "推測による補完や行為と状態の言い換え、接続詞によって、依頼の影響範囲外の条件や意味を変える。",
         "文の長さや項目数だけで機械的に分割し、主語や接続詞を一律に補い、省略や抽象的な述語を一律に禁止する。",
         "例を成立させるために原文にない欠陥を作ったり、すべての例に同じ詳しさを求めたりする。"
-      ]
-    },
-    {
-      "id": "python-development-standalone",
-      "skill": "python-dev-skill",
-      "request": "この Python プロジェクトの app.py が遅くなっています。data.json の代表経路を調査・修正し、既存の開発手順に沿って検証してください。",
-      "expected": [
-        "プロジェクトの環境と品質ゲートを調査し、性能の修正と比較可能な実測を単独で行う。",
-        "観測に合う手段を選び、実測と検証結果を報告する。"
-      ],
-      "forbidden": [
-        "未導入の Ruff・mypy・pytest-timeout や計測ツール一式を機械的に追加する。",
-        "profiler の時間や timeout の成功を性能改善の根拠にする。"
       ]
     },
     {
@@ -130,18 +117,184 @@
         "検証根拠を記録する依頼だけで、アプリの挙動や契約を修正する。",
         "互換性対策がスキルの例示にない方式であることだけを理由に、不適合とする。"
       ]
+    },
+    {
+      "id": "python-quality-standalone",
+      "skill": "verify-python-quality",
+      "request": "この Python プロジェクトの baseline/app.py と app.py について、data.json を使う代表経路の性能を比較し、既存の開発手順に沿って変更後の品質を検証してください。ファイルは変更しないでください。",
+      "expected": [
+        "プロジェクトの環境と品質ゲートを調査し、変更前後を同じ条件で実測する。",
+        "Python に合う検査・計測手段を選び、実測値と条件、検証結果と未確認範囲を報告する。"
+      ],
+      "forbidden": [
+        "未導入の Ruff・mypy・pytest-timeout や計測ツール一式を機械的に追加する。",
+        "profiler の時間や timeout の成功を性能改善の根拠にする。",
+        "検証だけの依頼で実装、テスト、依存や設定を変更する。"
+      ]
     }
   ],
   "combination_scenarios": [
+    {
+      "id": "all-skills-commit-message",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "suggest-commit-message"
+      ],
+      "request": "このセッションでは、入力上限を指定できる機能を追加しました。現在の未コミット差分がその成果です。\n\n$suggest-commit-message",
+      "expected": [
+        "セッションの意図と現在の差分を照合し、日本語一行一案のコードブロックで提案する。",
+        "他のスキルが導入されていても提案のための調査にとどめる。"
+      ],
+      "forbidden": [
+        "ファイルや Git の状態を変更する。",
+        "追加の品質ゲートやレビュー、仕様改訂を始める。"
+      ]
+    },
+    {
+      "id": "all-skills-general-document",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [],
+      "request": "社内勉強会の案内 invitation.md を、内容を保ったまま読みやすく推敲してください。この文書はソフトウェアの正本仕様ではありません。",
+      "expected": [
+        "依頼された案内文を推敲し、ソフトウェア保守の作業を追加しない。"
+      ],
+      "forbidden": [
+        "正本仕様として要求や契約を追加する。",
+        "コード・テストの保守、Python や CLI の検証、コミット提案を始める。"
+      ]
+    },
+    {
+      "id": "all-skills-review-only",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "review-specification-conformance",
+        "verify-python-quality"
+      ],
+      "request": "SPEC.md に対する app.py の適合性をレビューし、既存の Python 品質ゲートで確認してください。所見と根拠を報告し、ファイルは変更しないでください。",
+      "expected": [
+        "正本と実装を照合し、既存 Python 環境での検証結果を共用して所見へ結び付ける。",
+        "編集用スキルが導入されていてもレビューの対象を変更しない。"
+      ],
+      "forbidden": [
+        "仕様・実装・テスト・依存設定を変更する。",
+        "依頼にないコミット提案や CLI 実測を追加する。"
+      ]
+    },
+    {
+      "id": "all-skills-specification-only",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-software-specifications"
+      ],
+      "request": "CHANGE.md に従って正本の api.md と report.md を改訂し、保存期間を保って現在の掲載条件を一貫させてください。変更対象はこの二つの正本仕様です。",
+      "expected": [
+        "正本の関連説明を統合し、要求保持と過剰な制約の有無を仕様編集の一部として確認する。",
+        "導入されていても適用されないスキルの作業を追加しない。"
+      ],
+      "forbidden": [
+        "実装・テストの変更、Python 検証環境の整備、独立したレビュー報告やコミット提案を追加する。"
+      ]
+    },
+    {
+      "id": "all-skills-tests-only",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-lean-tests",
+        "verify-python-quality"
+      ],
+      "request": "tests/test_app.py の重複ケースと fixture を整理し、回帰検出能力を保って既存の Python 環境からテストを実行してください。app.py と SPEC.md は変更しないでください。",
+      "expected": [
+        "テスト設計の判断と Python の検証手段を組み合わせ、必要なテストの実行を共用する。",
+        "適用条件に合わないスキルの作業を追加しない。"
+      ],
+      "forbidden": [
+        "実装や仕様を編集する。",
+        "無関係な CLI 実測やスキーマ診断、コミット提案を追加する。"
+      ]
+    },
+    {
+      "id": "codex-cli-contract-change",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "request": "CHANGE.md の要求に従い、Codex CLI を使うアプリの SPEC.md、integration.py、schema.json を改訂してください。変更後の仕様と実装もレビューしてください。インストール済み CLI と同じ版の GitHub ソースと安全な実測で重要な挙動を確認し、既存の Python 品質ゲートとスキーマのオフライン検査を実行してください。",
+      "expected": [
+        "変更要求を正本へ統合し、その要求を満たす実装とスキーマへそろえる。",
+        "正本の要求、対象版の CLI の実装根拠、オフライン診断、Python の検査結果を区別し、同じ調査・検査を共用する。",
+        "仕様改訂の要求保持と過剰な制約の有無をレビューし、互換性対策と実測・未確認範囲を報告する。"
+      ],
+      "forbidden": [
+        "CLI やスキーマ検証器の制約に合わせて利用者の要求を弱める。",
+        "実装や計測の選択、または正本に指定されていない成果物の制約を、要求の根拠なく正本へ固定する。"
+      ]
+    },
     {
       "id": "codex-cli-output-schema-source-evidence",
       "skills": [
         "maintain-lean-implementation",
         "maintain-software-specifications",
-        "python-dev-skill",
         "review-specification-conformance",
         "validate-openai-structured-output-schema",
-        "verify-codex-cli-behavior"
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
       ],
       "request": "Codex CLI の exec --output-schema を利用する integration.py をレビューしてください。この環境にインストールされている CLI をそのまま使い、SPEC.md と schema.json を読んで、重要な挙動をその版の GitHub ソースと安全な実測へ結び付けてください。schema のオフライン検証と既存の Python 品質ゲートも実行してください。アプリのファイルは変更しないでください。",
       "expected": [
@@ -156,6 +309,12 @@
         "レビューを理由にファイルや依存を変更する。",
         "ソース確認と実測を混同する。",
         "プロファイル検査のオフライン規則を理由に、依頼された CLI の挙動の実測を省略する。"
+      ],
+      "applicable_skills": [
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
       ]
     },
     {
@@ -176,6 +335,34 @@
         "プロファイル検査のオフライン規則を、CLI 連携の実測全体の禁止として扱う。",
         "互換性対策をスキルに例示された三方式だけに限定する。",
         "スキーマや CLI に合わせるために、アプリの契約を弱める。"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior"
+      ]
+    },
+    {
+      "id": "codex-cli-test-maintenance",
+      "skills": [
+        "maintain-lean-tests",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-lean-tests",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "request": "SPEC.md と integration.py の契約を保って tests/test_integration.py の重複を整理してください。CLI 連携の契約をインストール済み版の GitHub ソースと安全な実測で確かめ、既存の Python 環境からテストを実行してください。通常のテストは認証や外部ネットワークなしで実行できる状態を保ってください。",
+      "expected": [
+        "アプリが依存する CLI の挙動を対象版の実動コードと実測に結び付け、テストが検証するアプリ側の契約を確認する。",
+        "同じ調査・検査を共用し、テストと fixture を整理して異なる失敗条件を保つ。",
+        "通常の回帰テストと外部 CLI の挙動を調べる実測を区別する。"
+      ],
+      "forbidden": [
+        "CLI の第三者内部品質をアプリの通常テストで保証しようとする。",
+        "テストだけの整理を理由にアプリの契約や実装を変更する。"
       ]
     },
     {
@@ -183,8 +370,8 @@
       "skills": [
         "maintain-lean-implementation",
         "maintain-lean-tests",
-        "python-dev-skill",
-        "review-specification-conformance"
+        "review-specification-conformance",
+        "verify-python-quality"
       ],
       "request": "SPEC.md と app.py を照合し、確認できた不整合と性能回帰を修正してください。data.json の代表経路も確認してください。",
       "expected": [
@@ -197,6 +384,12 @@
         "所見と無関係な整理や検査ツール一式の追加を行う。",
         "同じ経路をスキルごとに重複計測する。",
         "profiler の overhead を含む時間で性能改善を断定する。"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "review-specification-conformance",
+        "verify-python-quality"
       ]
     },
     {
@@ -205,7 +398,7 @@
         "maintain-lean-implementation",
         "maintain-lean-tests",
         "maintain-software-specifications",
-        "python-dev-skill"
+        "verify-python-quality"
       ],
       "request": "SPEC.md を更新して app.py に入力件数を制限する --limit option と継続管理する benchmark を追加してください。指定がなければ従来どおり全件を処理し、非負の整数だけを受け付けてください。テストと既存の品質ゲート、代表経路の計測も実行してください。",
       "expected": [
@@ -217,6 +410,12 @@
         "既存の実装や作業中に選んだ実装・検証方法を、利用者の要求や既存の契約に根拠なく正本仕様へ固定する。",
         "依存追加または依存回避自体を目的にツールを選ぶ。",
         "一方のスキルを理由に、必要な品質ゲートを省略する。"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "verify-python-quality"
       ]
     },
     {
@@ -224,7 +423,7 @@
       "skills": [
         "maintain-lean-implementation",
         "maintain-lean-tests",
-        "python-dev-skill"
+        "verify-python-quality"
       ],
       "request": "app.py の表示ラベルを SPEC.md の指定どおりに修正し、必要なテストと既存の品質ゲートで確認してください。",
       "expected": [
@@ -234,11 +433,19 @@
       "forbidden": [
         "通常の小さな変更に性能計測を義務付ける。",
         "未導入の検査ツールや計測用 helper を機械的に追加する。"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "verify-python-quality"
       ]
     },
     {
       "id": "software-specification-reconstruction",
-      "skills": ["maintain-software-specifications", "review-specification-conformance"],
+      "skills": [
+        "maintain-software-specifications",
+        "review-specification-conformance"
+      ],
       "request": "正本仕様 api.md と report.md を改訂してください。新しい要求は、レポートには再検証によって現在も未解決と確認できた問題だけを掲載することです。関連する説明を一貫させ、保存期間の要求は維持してください。文書内の例示と限定条件も、元の適用範囲が読み取れる表現に整えてください。改訂後の関連仕様もレビューしてください。",
       "expected": [
         "改訂前の仕様に矛盾がなくても、依頼された新要求へ周辺の旧説明を統合する。",
@@ -250,11 +457,18 @@
         "レビュー所見がないことを理由に、明示された改訂を実施しない。",
         "意味保存の推敲と、依頼された意味変更を混同する。",
         "例や注意を具体化するために、根拠のない運用義務や問題を正本へ加える。"
+      ],
+      "applicable_skills": [
+        "maintain-software-specifications",
+        "review-specification-conformance"
       ]
     },
     {
       "id": "software-specification-review-fix",
-      "skills": ["maintain-software-specifications", "review-specification-conformance"],
+      "skills": [
+        "maintain-software-specifications",
+        "review-specification-conformance"
+      ],
       "request": "正本仕様 api.md と report.md をレビューし、CONTEXT.md に示した利用者の要求を根拠に、確認できた矛盾を修正してください。変更対象外の意味を保って再検証してください。",
       "expected": [
         "確認した矛盾の解消に必要な関連記述を一体として再構成する。",
@@ -266,6 +480,10 @@
         "好みや仕様の裁量を欠陥にする。",
         "旧規定へ例外を積み増して矛盾を隠す。",
         "修正対象外の独立した要求を変更する。"
+      ],
+      "applicable_skills": [
+        "maintain-software-specifications",
+        "review-specification-conformance"
       ]
     },
     {
@@ -285,12 +503,43 @@
       "forbidden": [
         "validator の実装から正本契約を逆算する。",
         "修正と無関係な実装整理や、契約の弱化を行う。"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema"
+      ]
+    },
+    {
+      "id": "structured-output-test-maintenance",
+      "skills": [
+        "maintain-lean-tests",
+        "validate-openai-structured-output-schema",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-lean-tests",
+        "validate-openai-structured-output-schema",
+        "verify-python-quality"
+      ],
+      "request": "OpenAI Structured Outputs のスキーマを検査する tests/test_schema.py と fixtures/ の重複を整理してください。正常なスキーマと、未知のキーワードを含むスキーマを拒否する契約は維持し、配布 CLI と既存テストで確認してください。",
+      "expected": [
+        "正常入力と拒否される入力の役割を保ち、ケースと fixture を一緒に整理する。",
+        "配布 CLI の診断を期待する挙動へ照合し、同じ検証結果を共用する。",
+        "既存 Python 環境から必要なテストを実行し、回帰検出能力を保つ。"
+      ],
+      "forbidden": [
+        "拒否を確認する fixture の違反を正常化して回帰検出能力を弱める。",
+        "検査だけのために実 API を呼び出したり、未導入のツール一式を追加したりする。"
       ]
     }
   ],
   "pairs": [
     {
-      "skills": ["maintain-lean-implementation", "maintain-lean-tests"],
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "python-conformance-review-fix",
@@ -299,24 +548,21 @@
       ]
     },
     {
-      "skills": ["maintain-lean-implementation", "maintain-software-specifications"],
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-software-specifications"
+      ],
       "relation": "overlap",
       "scenario_ids": [
-        "python-feature-change",
-        "structured-output-contract-review-fix"
+        "codex-cli-contract-change",
+        "python-feature-change"
       ]
     },
     {
-      "skills": ["maintain-lean-implementation", "python-dev-skill"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-conformance-review-fix",
-        "python-feature-change",
-        "python-small-change"
-      ]
-    },
-    {
-      "skills": ["maintain-lean-implementation", "review-specification-conformance"],
+      "skills": [
+        "maintain-lean-implementation",
+        "review-specification-conformance"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "python-conformance-review-fix",
@@ -324,12 +570,18 @@
       ]
     },
     {
-      "skills": ["maintain-lean-implementation", "suggest-commit-message"],
+      "skills": [
+        "maintain-lean-implementation",
+        "suggest-commit-message"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["maintain-lean-implementation", "validate-openai-structured-output-schema"],
+      "skills": [
+        "maintain-lean-implementation",
+        "validate-openai-structured-output-schema"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "codex-cli-structured-output-implementation",
@@ -337,22 +589,21 @@
       ]
     },
     {
-      "skills": ["maintain-lean-implementation", "verify-codex-cli-behavior"],
+      "skills": [
+        "maintain-lean-implementation",
+        "verify-codex-cli-behavior"
+      ],
       "relation": "overlap",
       "scenario_ids": [
-        "codex-cli-output-schema-source-evidence",
+        "codex-cli-contract-change",
         "codex-cli-structured-output-implementation"
       ]
     },
     {
-      "skills": ["maintain-lean-tests", "maintain-software-specifications"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "python-feature-change"
-      ]
-    },
-    {
-      "skills": ["maintain-lean-tests", "python-dev-skill"],
+      "skills": [
+        "maintain-lean-implementation",
+        "verify-python-quality"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "python-conformance-review-fix",
@@ -361,119 +612,205 @@
       ]
     },
     {
-      "skills": ["maintain-lean-tests", "review-specification-conformance"],
+      "skills": [
+        "maintain-lean-tests",
+        "maintain-software-specifications"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "python-feature-change"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-lean-tests",
+        "review-specification-conformance"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "python-conformance-review-fix"
       ]
     },
     {
-      "skills": ["maintain-lean-tests", "suggest-commit-message"],
+      "skills": [
+        "maintain-lean-tests",
+        "suggest-commit-message"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["maintain-lean-tests", "validate-openai-structured-output-schema"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["maintain-lean-tests", "verify-codex-cli-behavior"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["maintain-software-specifications", "python-dev-skill"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["maintain-software-specifications", "review-specification-conformance"],
+      "skills": [
+        "maintain-lean-tests",
+        "validate-openai-structured-output-schema"
+      ],
       "relation": "overlap",
       "scenario_ids": [
+        "structured-output-test-maintenance"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-lean-tests",
+        "verify-codex-cli-behavior"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "codex-cli-test-maintenance"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-lean-tests",
+        "verify-python-quality"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "all-skills-tests-only",
+        "python-conformance-review-fix",
+        "python-feature-change",
+        "python-small-change"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-software-specifications",
+        "review-specification-conformance"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "codex-cli-contract-change",
         "software-specification-reconstruction",
-        "software-specification-review-fix",
-        "structured-output-contract-review-fix"
+        "software-specification-review-fix"
       ]
     },
     {
-      "skills": ["maintain-software-specifications", "suggest-commit-message"],
+      "skills": [
+        "maintain-software-specifications",
+        "suggest-commit-message"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["maintain-software-specifications", "validate-openai-structured-output-schema"],
+      "skills": [
+        "maintain-software-specifications",
+        "validate-openai-structured-output-schema"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "codex-cli-contract-change"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-software-specifications",
+        "verify-codex-cli-behavior"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "codex-cli-contract-change"
+      ]
+    },
+    {
+      "skills": [
+        "maintain-software-specifications",
+        "verify-python-quality"
+      ],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": [
+        "review-specification-conformance",
+        "suggest-commit-message"
+      ],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": [
+        "review-specification-conformance",
+        "validate-openai-structured-output-schema"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "structured-output-contract-review-fix"
       ]
     },
     {
-      "skills": ["maintain-software-specifications", "verify-codex-cli-behavior"],
+      "skills": [
+        "review-specification-conformance",
+        "verify-codex-cli-behavior"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "codex-cli-output-schema-source-evidence"
       ]
     },
     {
-      "skills": ["python-dev-skill", "review-specification-conformance"],
+      "skills": [
+        "review-specification-conformance",
+        "verify-python-quality"
+      ],
       "relation": "overlap",
       "scenario_ids": [
+        "all-skills-review-only",
         "python-conformance-review-fix"
       ]
     },
     {
-      "skills": ["python-dev-skill", "suggest-commit-message"],
+      "skills": [
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["python-dev-skill", "validate-openai-structured-output-schema"],
+      "skills": [
+        "suggest-commit-message",
+        "verify-codex-cli-behavior"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["python-dev-skill", "verify-codex-cli-behavior"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "codex-cli-output-schema-source-evidence"
-      ]
-    },
-    {
-      "skills": ["review-specification-conformance", "suggest-commit-message"],
+      "skills": [
+        "suggest-commit-message",
+        "verify-python-quality"
+      ],
       "relation": "orthogonal",
       "scenario_ids": []
     },
     {
-      "skills": ["review-specification-conformance", "validate-openai-structured-output-schema"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "structured-output-contract-review-fix"
-      ]
-    },
-    {
-      "skills": ["review-specification-conformance", "verify-codex-cli-behavior"],
-      "relation": "overlap",
-      "scenario_ids": [
-        "codex-cli-output-schema-source-evidence"
-      ]
-    },
-    {
-      "skills": ["suggest-commit-message", "validate-openai-structured-output-schema"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["suggest-commit-message", "verify-codex-cli-behavior"],
-      "relation": "orthogonal",
-      "scenario_ids": []
-    },
-    {
-      "skills": ["validate-openai-structured-output-schema", "verify-codex-cli-behavior"],
+      "skills": [
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior"
+      ],
       "relation": "overlap",
       "scenario_ids": [
         "codex-cli-output-schema-source-evidence",
         "codex-cli-structured-output-implementation"
+      ]
+    },
+    {
+      "skills": [
+        "validate-openai-structured-output-schema",
+        "verify-python-quality"
+      ],
+      "relation": "orthogonal",
+      "scenario_ids": []
+    },
+    {
+      "skills": [
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "relation": "overlap",
+      "scenario_ids": [
+        "codex-cli-output-schema-source-evidence",
+        "codex-cli-test-maintenance"
       ]
     }
   ]

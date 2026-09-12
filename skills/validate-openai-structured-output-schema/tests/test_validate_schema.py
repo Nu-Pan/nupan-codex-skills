@@ -40,6 +40,7 @@ def run_file(
         check=False,
         capture_output=True,
         text=True,
+        timeout=10,
     )
 
 
@@ -279,6 +280,91 @@ def test_counts_each_physical_schema_node_once_when_referenced(
             {f"p{index}": {"type": "string"} for index in range(4_998)}
         )
     }
+
+    result = run_schema(tmp_path, schema)
+
+    assert result.returncode == 0, result.stdout
+
+
+@pytest.mark.parametrize(
+    ("reference", "payload", "expected_pointer", "expected_code"),
+    [
+        ("#/properties", {}, "/properties", "SCHEMA_TYPE_REQUIRED"),
+        ("#/const", {"type": "invalid"}, "/const", "TYPE_UNSUPPORTED"),
+        (
+            "#/const/a~1b~0c",
+            {"a/b~c": {"type": "string", "unknown": True}},
+            "/const/a~1b~0c",
+            "UNKNOWN_KEYWORD",
+        ),
+        (
+            "#/const/%E5%90%8D%E5%89%8D",
+            {"名前": {"type": "array"}},
+            "/const/名前",
+            "ARRAY_ITEMS_REQUIRED",
+        ),
+    ],
+)
+def test_validates_referenced_objects_at_their_document_location(
+    tmp_path: Path,
+    reference: str,
+    payload: object,
+    expected_pointer: str,
+    expected_code: str,
+) -> None:
+    schema = object_schema({"value": {"$ref": reference}})
+    schema["const"] = payload
+
+    result = run_schema(tmp_path, schema)
+
+    assert result.returncode == 1
+    assert any(
+        error["code"] == expected_code and error["schemaPointer"] == expected_pointer
+        for error in json.loads(result.stdout)["errors"]
+    )
+
+
+def test_validates_transitive_references_and_stops_cycles(tmp_path: Path) -> None:
+    schema = object_schema({"value": {"$ref": "#/const/first"}})
+    schema["const"] = {
+        "first": object_schema({
+            "next": {"$ref": "#/const/second"},
+            "invalid": {"type": "string", "unknown": True},
+        }),
+        "second": {"$ref": "#/const/first"},
+    }
+
+    result = run_schema(tmp_path, schema)
+
+    assert result.returncode == 1
+    errors = json.loads(result.stdout)["errors"]
+    assert [(e["code"], e["schemaPointer"]) for e in errors] == [
+        ("UNKNOWN_KEYWORD", "/const/first/properties/invalid")
+    ]
+
+
+@pytest.mark.parametrize("extra_property", [False, True])
+def test_counts_shared_reference_targets_outside_schema_keywords_once(
+    tmp_path: Path, extra_property: bool
+) -> None:
+    schema = object_schema({
+        "first": {"$ref": "#/const"},
+        "second": {"$ref": "#/const"},
+    })
+    schema["const"] = object_schema({
+        f"p{index}": {"type": "string"}
+        for index in range(4_998 + int(extra_property))
+    })
+
+    result = run_schema(tmp_path, schema)
+
+    assert result.returncode == int(extra_property), result.stdout
+    assert error_codes(result) == ({"PROPERTY_LIMIT_EXCEEDED"} if extra_property else set())
+
+
+def test_does_not_validate_unreferenced_const_as_a_schema(tmp_path: Path) -> None:
+    schema = object_schema({})
+    schema["const"] = {"type": "invalid", "unknown": True}
 
     result = run_schema(tmp_path, schema)
 

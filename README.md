@@ -11,11 +11,12 @@ Nu-Pan が管理する Codex スキルのリポジトリです。各スキルの
 - [`maintain-lean-implementation`](skills/maintain-lean-implementation/README.md): 必要な要件を保ち、関連する実装を読み取りやすく変更しやすい構成へ組み直します。
 - [`maintain-lean-tests`](skills/maintain-lean-tests/README.md): 回帰検出能力を保ち、検証の意図を読み取りやすいテストへ整理します。
 - [`maintain-software-specifications`](skills/maintain-software-specifications/README.md): 正本仕様の作成・改訂・推敲で、要求の選別から構成と文章表現までを扱い、要件と設計意図に基づいて判断できる説明に整えます。
-- [`python-dev-skill`](skills/python-dev-skill/README.md): 既存の Python 環境と品質ゲートを優先し、変更の判断に必要な検証手段を選びます。
 - [`review-specification-conformance`](skills/review-specification-conformance/README.md): 仕様や実装の問題を、確認済みの根拠と判断への影響に基づいて所見として整理します。
 - [`suggest-commit-message`](skills/suggest-commit-message/README.md): セッションの意図から、未コミット変更全体の主題を一行で伝えるコミットメッセージを提案します。
 - [`validate-openai-structured-output-schema`](skills/validate-openai-structured-output-schema/README.md): OpenAI Structured Outputs 用の JSON Schema を、付属の検証コマンドでバージョン付きの検証規則と照合します。
 - [`verify-codex-cli-behavior`](skills/verify-codex-cli-behavior/README.md): アプリが依存する Codex CLI の挙動を対象版のソースと安全な実測で調べ、根拠と互換性対策を追跡可能にします。
+
+- [`verify-python-quality`](skills/verify-python-quality/README.md): プロジェクトの Python 環境を優先し、配布・静的検査・リソース検査・性能計測の手段を選んで検証します。
 
 ## インストール
 

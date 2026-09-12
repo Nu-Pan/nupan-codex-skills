@@ -1,0 +1,4 @@
+interface:
+  display_name: "Python 固有の品質検証"
+  short_description: "プロジェクトの Python 環境を使い、判断に必要な検査と計測を行う"
+  default_prompt: "$verify-python-quality を使って、この Python の変更をプロジェクトに合う方法で検証してください。"

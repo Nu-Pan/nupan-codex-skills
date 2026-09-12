@@ -11,7 +11,7 @@ from typing import Any, Iterable
 
 
 COMPOSITION_FILE_NAME = "skill-composition.json"
-COMPOSITION_VERSION = 1
+COMPOSITION_VERSION = 2
 
 ROOT_KEYS = {
     "version",
@@ -22,7 +22,9 @@ ROOT_KEYS = {
 }
 OPTIONAL_REFERENCE_KEYS = {"source", "target", "locations", "fallback"}
 STANDALONE_SCENARIO_KEYS = {"id", "skill", "request", "expected", "forbidden"}
-COMBINATION_SCENARIO_KEYS = {"id", "skills", "request", "expected", "forbidden"}
+COMBINATION_SCENARIO_KEYS = {
+    "id", "skills", "applicable_skills", "request", "expected", "forbidden"
+}
 PAIR_KEYS = {"skills", "relation", "scenario_ids"}
 PAIR_RELATIONS = {"orthogonal", "overlap"}
 
@@ -296,6 +298,19 @@ def _validate_combination_scenarios(
             for skill_name in sorted(set(skills) - known_names):
                 issues.append((path, f"組み合わせシナリオが未知のスキルを参照しています: {skill_name}"))
 
+        applicable_skills = _validate_string_list(
+            scenario.get("applicable_skills"),
+            f"{label}.applicable_skills",
+            path,
+            issues,
+            require_sorted=True,
+        )
+        if applicable_skills is not None and skills is not None:
+            for skill_name in sorted(set(applicable_skills) - set(skills)):
+                issues.append(
+                    (path, f"{label}.applicable_skills が導入対象にないスキルを参照しています: {skill_name}")
+                )
+
     if ordered_ids != sorted(ordered_ids):
         issues.append((path, "combination_scenarios を id の名前順にしてください"))
     return by_id, ids
@@ -377,7 +392,6 @@ def _validate_pairs(
     known_names = set(skill_names)
     observed: set[tuple[str, str]] = set()
     ordered_pairs: list[tuple[str, str]] = []
-    referenced_scenarios: set[str] = set()
     for index, pair in enumerate(pairs):
         label = f"pairs[{index}]"
         _validate_exact_keys(pair, PAIR_KEYS, path, label, issues)
@@ -420,18 +434,21 @@ def _validate_pairs(
             issues.append((path, f"{label} の overlap pair には scenario_ids が必要です"))
 
         for scenario_id in scenario_ids:
-            referenced_scenarios.add(scenario_id)
             scenario = combinations_by_id.get(scenario_id)
             if scenario is None:
                 issues.append((path, f"pair が未知の組み合わせシナリオを参照しています: {scenario_id}"))
                 continue
-            scenario_skills = scenario.get("skills")
-            if pair_key is not None and isinstance(scenario_skills, list):
+            scenario_skills = scenario.get("applicable_skills")
+            if (
+                pair_key is not None
+                and isinstance(scenario_skills, list)
+                and all(isinstance(skill, str) for skill in scenario_skills)
+            ):
                 if not set(pair_key).issubset(scenario_skills):
                     issues.append(
                         (
                             path,
-                            f"{scenario_id} に pair の両スキルがありません: "
+                            f"{scenario_id} の applicable_skills に pair の両スキルがありません: "
                             f"{pair_key[0]}, {pair_key[1]}",
                         )
                     )
@@ -444,9 +461,6 @@ def _validate_pairs(
         issues.append((path, f"pair がありません: {missing_pair[0]}, {missing_pair[1]}"))
     for unexpected_pair in sorted(observed - expected_pairs):
         issues.append((path, f"不要な pair があります: {unexpected_pair[0]}, {unexpected_pair[1]}"))
-
-    for scenario_id in sorted(combinations_by_id.keys() - referenced_scenarios):
-        issues.append((path, f"どの overlap pair からも参照されないシナリオがあります: {scenario_id}"))
 
 
 def _repository_text_paths(repository_root: Path, skill_names: list[str]) -> list[Path]:

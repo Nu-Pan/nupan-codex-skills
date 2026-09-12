@@ -399,7 +399,7 @@ class RepositoryToolsTest(unittest.TestCase):
         (self.repository_root / "skill-composition.json").write_text(
             json.dumps(
                 {
-                    "version": 1,
+                    "version": 2,
                     "optional_references": [],
                     "standalone_scenarios": [
                         {

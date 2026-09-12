@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import sys
-import tempfile
-import unittest
 from pathlib import Path
+
+import pytest
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -14,263 +14,228 @@ from create_skill import create_skill  # noqa: E402
 from skill_repository import validate_repository  # noqa: E402
 
 
-class SkillCompositionTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        self.repository_root = Path(self.temporary_directory.name)
-        self.skill_names = ["alpha-skill", "beta-skill"]
-        for skill_name in self.skill_names:
-            self._create_completed_skill(skill_name)
-        self._write_root_readme()
-        self.registry = self._valid_registry()
-        self._write_registry()
+SKILLS = ["alpha-skill", "beta-skill"]
 
-    def tearDown(self) -> None:
-        self.temporary_directory.cleanup()
 
-    def test_valid_orthogonal_registry_passes(self) -> None:
-        names, issues = validate_repository(self.repository_root)
-
-        self.assertEqual(self.skill_names, names)
-        self.assertEqual([], issues)
-
-    def test_valid_overlap_scenario_passes(self) -> None:
-        self.registry["combination_scenarios"] = [
+@pytest.fixture
+def registry():
+    return {
+        "version": 2,
+        "optional_references": [],
+        "standalone_scenarios": [
             {
-                "id": "combined-change",
-                "skills": self.skill_names,
-                "request": "Use both skills for one change.",
-                "expected": ["Both sets of rules are satisfied."],
-                "forbidden": ["One skill silently overrides the other."],
+                "id": f"{name}-standalone",
+                "skill": name,
+                "request": f"Run {name} alone.",
+                "expected": ["The task completes."],
+                "forbidden": ["Another skill is required."],
             }
-        ]
-        self.registry["pairs"][0] = {
-            "skills": self.skill_names,
-            "relation": "overlap",
-            "scenario_ids": ["combined-change"],
-        }
-        self._write_registry()
+            for name in SKILLS
+        ],
+        "combination_scenarios": [],
+        "pairs": [{"skills": SKILLS.copy(), "relation": "orthogonal", "scenario_ids": []}],
+    }
 
-        _, issues = validate_repository(self.repository_root)
 
-        self.assertEqual([], issues)
+def write_registry(repository: Path, registry) -> None:
+    (repository / "skill-composition.json").write_text(
+        json.dumps(registry, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
-    def test_missing_and_duplicate_registry_data_are_reported(self) -> None:
-        (self.repository_root / "skill-composition.json").unlink()
 
-        _, missing_issues = validate_repository(self.repository_root)
-
-        self.assertTrue(any("組み合わせ台帳がありません" in issue.message for issue in missing_issues))
-
-        (self.repository_root / "skill-composition.json").write_text(
-            '{"version": 1, "version": 1}\n', encoding="utf-8"
+@pytest.fixture
+def repository(tmp_path: Path, registry) -> Path:
+    for name in SKILLS:
+        root = create_skill(tmp_path, name)
+        (root / "SPEC.md").write_text(f"# {name}\n\nサンプル処理を定義する。\n")
+        (root / "README.md").write_text(
+            f"# {name}\n\n仕様は [SPEC.md](SPEC.md)、配布物は [dist](dist)。\n"
         )
-        _, duplicate_issues = validate_repository(self.repository_root)
-
-        self.assertTrue(any("キーが重複" in issue.message for issue in duplicate_issues))
-
-    def test_every_skill_requires_one_standalone_scenario(self) -> None:
-        self.registry["standalone_scenarios"].pop()
-        self._write_registry()
-
-        _, issues = validate_repository(self.repository_root)
-
-        self.assertTrue(any("単独シナリオがありません: beta-skill" in issue.message for issue in issues))
-
-    def test_version_requires_integer_one(self) -> None:
-        for version in (True, 1.0, "1", 2):
-            with self.subTest(version=version):
-                self.registry["version"] = version
-                self._write_registry()
-                _, issues = validate_repository(self.repository_root)
-                self.assertTrue(any("version は整数の 1" in issue.message for issue in issues))
-
-    def test_every_skill_pair_requires_one_classification(self) -> None:
-        self.registry["pairs"] = []
-        self._write_registry()
-
-        _, issues = validate_repository(self.repository_root)
-
-        self.assertTrue(
-            any("pair がありません: alpha-skill, beta-skill" in issue.message for issue in issues)
+        (root / "dist" / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: Run a sample composition task.\n---\n\n"
+            "Validate the input and return the result.\n"
         )
-
-    def test_overlap_pair_requires_matching_scenario(self) -> None:
-        self.registry["pairs"][0]["relation"] = "overlap"
-        self._write_registry()
-
-        _, issues = validate_repository(self.repository_root)
-
-        self.assertTrue(
-            any("overlap pair には scenario_ids が必要" in issue.message for issue in issues)
-        )
-
-    def test_optional_reference_requires_declaration_and_fallback(self) -> None:
-        alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
-        original = alpha_spec.read_text(encoding="utf-8")
-        for reference in ("$beta-skill", "beta-skill"):
-            with self.subTest(reference=reference):
-                alpha_spec.write_text(
-                    original + f"\n利用可能な場合は {reference} の結果を再利用する。\n",
-                    encoding="utf-8",
-                )
-                self.registry["optional_references"] = []
-                self._write_registry()
-                _, undeclared_issues = validate_repository(self.repository_root)
-                self.assertTrue(any("台帳にない任意参照" in issue.message for issue in undeclared_issues))
-
-                self.registry["optional_references"] = [
-                    {
-                        "source": "alpha-skill",
-                        "target": "beta-skill",
-                        "locations": ["SPEC.md"],
-                        "fallback": "Run the same check locally when beta-skill is absent.",
-                    }
-                ]
-                self._write_registry()
-                _, valid_issues = validate_repository(self.repository_root)
-                self.assertEqual([], valid_issues)
-
-                self.registry["optional_references"][0]["fallback"] = ""
-                self._write_registry()
-                _, fallback_issues = validate_repository(self.repository_root)
-                self.assertTrue(any("fallback は空でない文字列" in issue.message for issue in fallback_issues))
-
-    def test_undeclared_skill_name_and_direct_path_reference_are_reported(self) -> None:
-        alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
-        alpha_spec.write_text(
-            alpha_spec.read_text(encoding="utf-8")
-            + "\nbeta-skill と skills/beta-skill/SPEC.md を参照する。\n",
-            encoding="utf-8",
-        )
-
-        _, issues = validate_repository(self.repository_root)
-
-        messages = [issue.message for issue in issues]
-        self.assertTrue(any("台帳にない任意参照" in message for message in messages))
-        self.assertTrue(any("別のスキルへの直接パス参照" in message for message in messages))
-
-    def test_dangling_repository_path_reference_is_reported(self) -> None:
-        readme = self.repository_root / "README.md"
-        readme.write_text(
-            readme.read_text(encoding="utf-8")
-            + "\n[missing](skills/missing-skill/README.md)\n",
-            encoding="utf-8",
-        )
-
-        _, issues = validate_repository(self.repository_root)
-
-        self.assertTrue(any("存在しないスキルへのパス参照" in issue.message for issue in issues))
-
-    def test_spec_layout_does_not_determine_composition_validity(self) -> None:
-        alpha_spec = self.repository_root / "skills" / "alpha-skill" / "SPEC.md"
-        for content in (
-            "# Alpha\n\n## 判断基準\n\n対象の処理を単独で実行する。\n",
-            "# Alpha\n\n対象の処理を実行する。他の処理とは結果を共用できる。\n",
-        ):
-            with self.subTest(content=content):
-                alpha_spec.write_text(content, encoding="utf-8")
-                _, issues = validate_repository(self.repository_root)
-                self.assertEqual([], issues)
-
-        self.registry["pairs"] = []
-        self._write_registry()
-        _, issues = validate_repository(self.repository_root)
-        self.assertTrue(any("pair がありません" in issue.message for issue in issues))
-
-    def test_targeted_validation_still_checks_complete_registry(self) -> None:
-        self.registry["pairs"] = []
-        self._write_registry()
-
-        names, issues = validate_repository(self.repository_root, ["alpha-skill"])
-
-        self.assertEqual(["alpha-skill"], names)
-        self.assertTrue(any("pair がありません" in issue.message for issue in issues))
-
-    def _create_completed_skill(self, skill_name: str) -> None:
-        skill_root = create_skill(self.repository_root, skill_name)
-        (skill_root / "SPEC.md").write_text(
-            f"# {skill_name} の仕様\n\n"
-            "## 目的\n\n"
-            "サンプル処理を定義する。\n"
-            "単独で処理し、両立する規則を累積する。\n",
-            encoding="utf-8",
-        )
-        (skill_root / "README.md").write_text(
-            f"# {skill_name}\n\n"
-            "サンプル処理を実行します。\n\n"
-            "仕様は [SPEC.md](SPEC.md) にあります。\n"
-            "配布物は [dist](dist) にあります。\n",
-            encoding="utf-8",
-        )
-        distribution_root = skill_root / "dist"
-        (distribution_root / "SKILL.md").write_text(
-            "---\n"
-            f"name: {skill_name}\n"
-            "description: Run a sample task when composition behavior needs validation.\n"
-            "---\n\n"
-            "# Run a sample task\n\n"
-            "## 実行\n\n"
-            "Validate the input and return the result.\n",
-            encoding="utf-8",
-        )
-        (distribution_root / "agents" / "openai.yaml").write_text(
+        (root / "dist" / "agents" / "openai.yaml").write_text(
             "interface:\n"
-            f'  display_name: "{skill_name}"\n'
+            f'  display_name: "{name}"\n'
             '  short_description: "Run repeatable composition sample tasks"\n'
-            f'  default_prompt: "Use ${skill_name} to run this sample task."\n',
-            encoding="utf-8",
+            f'  default_prompt: "Use ${name} to run this sample task."\n'
         )
-
-    def _write_root_readme(self) -> None:
-        skill_links = "\n".join(
-            f"- [{skill_name}](skills/{skill_name}/README.md)"
-            for skill_name in self.skill_names
-        )
-        (self.repository_root / "README.md").write_text(
-            "# Test skills\n\n"
-            f"{skill_links}\n\n"
-            "## インストール\n\n"
-            "```bash\n"
-            "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}\n"
-            "python3 scripts/install_skill.py all {{target-repository}}\n"
-            "```\n\n"
-            "`{{target-repository}}/.agents/skills/{{skill-name}}` へ配置します。\n\n"
-            "## 使用方法\n\n"
-            "`${{skill-name}}` を指定します。\n",
-            encoding="utf-8",
-        )
-
-    def _valid_registry(self) -> dict[str, object]:
-        return {
-            "version": 1,
-            "optional_references": [],
-            "standalone_scenarios": [
-                {
-                    "id": f"{skill_name}-standalone",
-                    "skill": skill_name,
-                    "request": f"Run {skill_name} alone.",
-                    "expected": ["The task completes."],
-                    "forbidden": ["Another skill is required."],
-                }
-                for skill_name in self.skill_names
-            ],
-            "combination_scenarios": [],
-            "pairs": [
-                {
-                    "skills": self.skill_names,
-                    "relation": "orthogonal",
-                    "scenario_ids": [],
-                }
-            ],
-        }
-
-    def _write_registry(self) -> None:
-        (self.repository_root / "skill-composition.json").write_text(
-            json.dumps(self.registry, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+    links = "\n".join(f"- [{name}](skills/{name}/README.md)" for name in SKILLS)
+    (tmp_path / "README.md").write_text(
+        f"# Test skills\n\n{links}\n\n"
+        "```bash\n"
+        "python3 scripts/install_skill.py {{skill-name}} {{target-repository}}\n"
+        "python3 scripts/install_skill.py all {{target-repository}}\n"
+        "```\n\n"
+        "`{{target-repository}}/.agents/skills/{{skill-name}}` へ配置します。\n"
+        "`${{skill-name}}` を指定します。\n"
+    )
+    write_registry(tmp_path, registry)
+    return tmp_path
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.fixture
+def scenario():
+    return {
+        "id": "combined-change",
+        "skills": SKILLS.copy(),
+        "applicable_skills": SKILLS.copy(),
+        "request": "Complete the requested task.",
+        "expected": ["Applicable rules are satisfied and shared work is reused."],
+        "forbidden": ["Installed skills add unrelated work."],
+    }
+
+
+def messages(repository: Path, registry) -> list[str]:
+    write_registry(repository, registry)
+    return [issue.message for issue in validate_repository(repository)[1]]
+
+
+def test_valid_orthogonal_registry_passes(repository: Path) -> None:
+    names, issues = validate_repository(repository)
+    assert names == SKILLS
+    assert issues == []
+
+
+def test_valid_overlap_scenario_passes(repository: Path, registry, scenario) -> None:
+    registry["combination_scenarios"] = [scenario]
+    registry["pairs"][0].update(relation="overlap", scenario_ids=[scenario["id"]])
+    assert messages(repository, registry) == []
+
+
+@pytest.mark.parametrize("applicable", [[], ["alpha-skill"], SKILLS])
+def test_unreferenced_application_scenario_passes(
+    repository: Path, registry, scenario, applicable
+) -> None:
+    scenario["applicable_skills"] = applicable
+    registry["combination_scenarios"] = [scenario]
+    assert messages(repository, registry) == []
+
+
+@pytest.mark.parametrize(
+    ("applicable", "fragment"),
+    [
+        (None, "applicable_skills は"),
+        ([{}], "applicable_skills は"),
+        (["alpha-skill", "alpha-skill"], "applicable_skills に重複"),
+        (list(reversed(SKILLS)), "applicable_skills を名前順"),
+        (["missing-skill"], "導入対象にないスキル"),
+    ],
+)
+def test_invalid_applicable_skills_are_reported(
+    repository: Path, registry, scenario, applicable, fragment: str
+) -> None:
+    scenario["applicable_skills"] = applicable
+    registry["combination_scenarios"] = [scenario]
+    registry["pairs"][0].update(relation="overlap", scenario_ids=[scenario["id"]])
+    assert any(fragment in message for message in messages(repository, registry))
+
+
+def test_applicable_skill_must_be_installed_even_when_known(
+    repository: Path, registry, scenario
+) -> None:
+    registry["combination_scenarios"] = [scenario]
+    scenario["skills"] = ["alpha-skill", "missing-skill"]
+    assert any(
+        "導入対象にないスキル" in m and "beta-skill" in m
+        for m in messages(repository, registry)
+    )
+
+
+def test_applicable_skills_is_required(repository: Path, registry, scenario) -> None:
+    del scenario["applicable_skills"]
+    registry["combination_scenarios"] = [scenario]
+    assert any("applicable_skills がありません" in m for m in messages(repository, registry))
+
+
+@pytest.mark.parametrize("applicable", [[], ["alpha-skill"]])
+def test_installed_but_inapplicable_skill_does_not_prove_overlap(
+    repository: Path, registry, scenario, applicable
+) -> None:
+    registry["combination_scenarios"] = [scenario]
+    scenario["applicable_skills"] = applicable
+    registry["pairs"][0].update(relation="overlap", scenario_ids=[scenario["id"]])
+    assert any("applicable_skills に pair の両スキルがありません" in m for m in messages(repository, registry))
+
+
+def test_missing_and_duplicate_registry_data_are_reported(repository: Path) -> None:
+    path = repository / "skill-composition.json"
+    path.unlink()
+    assert any("組み合わせ台帳がありません" in i.message for i in validate_repository(repository)[1])
+    path.write_text('{"version": 2, "version": 2}\n')
+    assert any("キーが重複" in i.message for i in validate_repository(repository)[1])
+
+
+def test_every_skill_requires_one_standalone_scenario(repository: Path, registry) -> None:
+    registry["standalone_scenarios"].pop()
+    assert any("単独シナリオがありません: beta-skill" in m for m in messages(repository, registry))
+
+
+@pytest.mark.parametrize("version", [True, 2.0, "2", 1, 3])
+def test_version_requires_integer_two(repository: Path, registry, version) -> None:
+    registry["version"] = version
+    assert any("version は整数の 2" in m for m in messages(repository, registry))
+
+
+def test_every_skill_pair_requires_one_classification(repository: Path, registry) -> None:
+    registry["pairs"] = []
+    assert any("pair がありません: alpha-skill, beta-skill" in m for m in messages(repository, registry))
+
+
+def test_overlap_pair_requires_matching_scenario(repository: Path, registry) -> None:
+    registry["pairs"][0]["relation"] = "overlap"
+    assert any("overlap pair には scenario_ids が必要" in m for m in messages(repository, registry))
+
+
+@pytest.mark.parametrize("reference", ["$beta-skill", "beta-skill"])
+def test_optional_reference_requires_declaration_and_fallback(
+    repository: Path, registry, reference: str
+) -> None:
+    path = repository / "skills" / "alpha-skill" / "SPEC.md"
+    path.write_text(path.read_text() + f"\n利用可能な場合は {reference} の結果を再利用する。\n")
+    assert any("台帳にない任意参照" in m for m in messages(repository, registry))
+    registry["optional_references"] = [{
+        "source": "alpha-skill", "target": "beta-skill", "locations": ["SPEC.md"],
+        "fallback": "Run the same check locally when beta-skill is absent.",
+    }]
+    assert messages(repository, registry) == []
+    registry["optional_references"][0]["fallback"] = ""
+    assert any("fallback は空でない文字列" in m for m in messages(repository, registry))
+
+
+def test_undeclared_skill_name_and_direct_path_reference_are_reported(
+    repository: Path, registry
+) -> None:
+    path = repository / "skills" / "alpha-skill" / "SPEC.md"
+    path.write_text(path.read_text() + "\nbeta-skill と skills/beta-skill/SPEC.md を参照する。\n")
+    found = messages(repository, registry)
+    assert any("台帳にない任意参照" in m for m in found)
+    assert any("別のスキルへの直接パス参照" in m for m in found)
+
+
+def test_dangling_repository_path_reference_is_reported(repository: Path, registry) -> None:
+    path = repository / "README.md"
+    path.write_text(path.read_text() + "\n[missing](skills/missing-skill/README.md)\n")
+    assert any("存在しないスキルへのパス参照" in m for m in messages(repository, registry))
+
+
+@pytest.mark.parametrize("content", [
+    "# Alpha\n\n## 判断基準\n\n対象の処理を単独で実行する。\n",
+    "# Alpha\n\n対象の処理を実行する。他の処理とは結果を共用できる。\n",
+])
+def test_spec_layout_does_not_determine_composition_validity(
+    repository: Path, registry, content: str
+) -> None:
+    (repository / "skills" / "alpha-skill" / "SPEC.md").write_text(content)
+    assert messages(repository, registry) == []
+    registry["pairs"] = []
+    assert any("pair がありません" in m for m in messages(repository, registry))
+
+
+def test_targeted_validation_still_checks_complete_registry(repository: Path, registry) -> None:
+    registry["pairs"] = []
+    write_registry(repository, registry)
+    names, issues = validate_repository(repository, ["alpha-skill"])
+    assert names == ["alpha-skill"]
+    assert any("pair がありません" in i.message for i in issues)

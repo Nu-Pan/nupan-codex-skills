@@ -472,6 +472,10 @@ class SchemaValidator:
                 continue
             target, reason, is_external = self._resolve_reference(reference)
             if target is not None:
+                # A reference can reach a schema outside the usual schema keywords.
+                # Visiting it also queues its references; visited nodes stop cycles.
+                target_pointer = unquote_to_bytes(reference[1:]).decode("utf-8") or "/"
+                self._visit(target, target_pointer)
                 continue
             code = (
                 "EXTERNAL_REFERENCE_UNSUPPORTED"
