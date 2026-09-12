@@ -1,6 +1,6 @@
 interface:
-  display_name: "Codex CLI 挙動をソースで検証"
-  short_description: "対象版の Codex CLI への依存を調べ、根拠と互換性対策を追跡可能にする"
+  display_name: "Codex CLI の挙動をソースで検証"
+  short_description: "アプリが依存する Codex CLI の挙動を調べ、確認の根拠と互換性対策をたどれる形にする"
   default_prompt: "$verify-codex-cli-behavior を使って、アプリが依存する Codex CLI の挙動を、対象版のソースと安全な実測で確認してください。"
 policy:
   allow_implicit_invocation: true

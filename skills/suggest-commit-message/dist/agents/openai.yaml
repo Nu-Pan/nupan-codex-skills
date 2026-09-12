@@ -1,6 +1,6 @@
 interface:
   display_name: "コミットメッセージを提案"
-  short_description: "セッションの意図から、未コミット変更全体の主題を一行で伝える"
+  short_description: "セッションの意図から、未コミットの変更全体の主題を一行で伝える"
   default_prompt: "$suggest-commit-message"
 
 policy:
