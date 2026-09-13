@@ -208,6 +208,38 @@
       ]
     },
     {
+      "id": "all-skills-self-maintenance",
+      "skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "suggest-commit-message",
+        "validate-openai-structured-output-schema",
+        "verify-codex-cli-behavior",
+        "verify-python-quality"
+      ],
+      "applicable_skills": [
+        "maintain-lean-implementation",
+        "maintain-lean-tests",
+        "maintain-software-specifications",
+        "review-specification-conformance",
+        "verify-python-quality"
+      ],
+      "request": "このリポジトリの sample-skill を、導入された各スキルの適用条件と原則に照らしてレビューし、不整合を修正してください。SPEC.md を正本として、dist/SKILL.md、Python の実行時スクリプト、テストを一貫させ、必要な要求と回帰検出能力を保ってください。正本内の同義の補足も整理し、結果を検証してください。",
+      "expected": [
+        "正本の要求を保ち、説明と配布指示、実行時の挙動、テストを対応させる。",
+        "必要な判断を伝える説明へ統合し、契約にない実装方式や文言をテストへ固定しない。",
+        "Python の既存環境と品質ゲートを使い、同じ検証結果を共用する。",
+        "スキル自身を保守する依頼でも適用条件を確かめ、作業と成果物の役割に合う規則を適用する。"
+      ],
+      "forbidden": [
+        "スキル名への言及だけを理由に、コミット提案や無関係な CLI 実測、Structured Outputs の検査を追加する。",
+        "自己適用を理由に全スキルの実行手順を各配布物へ複製したり、別スキルへの実行時依存を作ったりする。",
+        "実装やテストに合わせて正本の必要な保証を弱める。"
+      ]
+    },
+    {
       "id": "all-skills-specification-only",
       "skills": [
         "maintain-lean-implementation",
@@ -425,9 +457,9 @@
         "maintain-lean-tests",
         "verify-python-quality"
       ],
-      "request": "app.py の表示ラベルを SPEC.md の指定どおりに修正し、必要なテストと既存の品質ゲートで確認してください。",
+      "request": "app.py の表示ラベルと、それを検証する既存テストの期待値を SPEC.md の指定どおりに修正し、必要なテストと既存の品質ゲートで確認してください。",
       "expected": [
-        "指定された表示を修正し、対応するテストを実行する。",
+        "指定された表示と対応するテストの期待値を修正し、テストを実行する。",
         "既存環境を使用し、判断に必要な検証を選ぶ。"
       ],
       "forbidden": [

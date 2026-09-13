@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -120,9 +121,9 @@ def test_text_output_reports_success_and_diagnostics(tmp_path: Path) -> None:
         output_format="text",
     )
     assert valid_result.returncode == 0
-    assert valid_result.stdout == (
-        f"OK: {tmp_path / 'schema.json'} ({PROFILE})\n"
-    )
+    assert len(valid_result.stdout.splitlines()) == 1
+    assert str(tmp_path / "schema.json") in valid_result.stdout
+    assert PROFILE in valid_result.stdout
 
     invalid_result = run_schema(
         tmp_path,
@@ -149,18 +150,17 @@ def test_reports_required_mismatch_with_fixed_json_shape(tmp_path: Path) -> None
     payload = json.loads(result.stdout)
 
     assert result.returncode == 1
-    assert list(payload) == ["profile", "path", "valid", "errors"]
-    assert payload["errors"] == [
-        {
-            "code": "OBJECT_REQUIRED_MISMATCH",
-            "schemaPointer": "/",
-            "message": "Object properties and required fields must match.",
-            "details": {
-                "missingRequired": ["status"],
-                "unexpectedRequired": ["obsolete"],
-            },
-        }
-    ]
+    assert set(payload) == {"profile", "path", "valid", "errors"}
+    assert len(payload["errors"]) == 1
+    error = payload["errors"][0]
+    assert set(error) == {"code", "schemaPointer", "message", "details"}
+    assert error["code"] == "OBJECT_REQUIRED_MISMATCH"
+    assert error["schemaPointer"] == "/"
+    assert isinstance(error["message"], str) and error["message"].strip()
+    assert error["details"] == {
+        "missingRequired": ["status"],
+        "unexpectedRequired": ["obsolete"],
+    }
 
 
 def test_rejects_root_object_and_keyword_violations(tmp_path: Path) -> None:
@@ -249,14 +249,15 @@ def test_rejects_invalid_references(
     assert expected_code in error_codes(result)
 
 
-def test_rejects_non_canonical_json_pointer_array_index(
-    tmp_path: Path,
+@pytest.mark.parametrize("index", ["01", "١", "²", "-", "9" * 5_000])
+def test_rejects_non_canonical_or_out_of_range_json_pointer_array_index(
+    tmp_path: Path, index: str,
 ) -> None:
     choice = {"anyOf": [{"type": "string"}, {"type": "integer"}]}
     schema = object_schema(
         {
             "choice": choice,
-            "copy": {"$ref": "#/properties/choice/anyOf/01"},
+            "copy": {"$ref": f"#/properties/choice/anyOf/{index}"},
         }
     )
 
@@ -381,6 +382,141 @@ def test_enum_duplicate_detection_uses_json_numeric_equality(
 
     assert result.returncode == 1
     assert "INVALID_KEYWORD_VALUE" in error_codes(result)
+
+
+@pytest.mark.parametrize(
+    ("numbers", "duplicate"),
+    [
+        ("1,1.0", True),
+        ("1e400,10e399", True),
+        ("9007199254740992.0,9007199254740993.0", False),
+        ("1e400,2e400", False),
+        ("1e-400,2e-400", False),
+    ],
+)
+def test_compares_enum_numbers_without_rounding(
+    tmp_path: Path, numbers: str, duplicate: bool
+) -> None:
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{"n":{"type":"number","enum":['
+        + numbers + ']}},"required":["n"],"additionalProperties":false}',
+        encoding="utf-8",
+    )
+    result = run_file(path)
+    assert result.returncode == int(duplicate), result.stderr
+    assert error_codes(result) == ({"INVALID_KEYWORD_VALUE"} if duplicate else set())
+
+
+@pytest.mark.parametrize("keyword", ["minItems", "maxItems"])
+@pytest.mark.parametrize(
+    ("number", "valid"),
+    [("0.0", True), ("1e400", True), ("1.0000000000000000001", False), ("1e-400", False)],
+)
+def test_array_bounds_use_integer_values_not_number_spelling(
+    tmp_path: Path, keyword: str, number: str, valid: bool
+) -> None:
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{"values":{"type":"array",'
+        '"items":{"type":"string"},"' + keyword + '":' + number
+        + '}},"required":["values"],"additionalProperties":false}',
+        encoding="utf-8",
+    )
+    result = run_file(path)
+    assert result.returncode == int(not valid), result.stderr
+    assert error_codes(result) == (set() if valid else {"INVALID_KEYWORD_VALUE"})
+
+
+def test_retains_decimal_values_in_validation_and_json_diagnostics(tmp_path: Path) -> None:
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{'
+        '"n":{"type":"number","multipleOf":1e-400,"maximum":1e400},'
+        '"s":{"type":"string","format":9007199254740993.25}},'
+        '"required":["n","s"],"additionalProperties":false}',
+        encoding="utf-8",
+    )
+    result = run_file(path)
+    payload = json.loads(result.stdout, parse_float=Decimal)
+    assert result.returncode == 1, result.stderr
+    assert error_codes(result) == {"FORMAT_UNSUPPORTED"}
+    assert payload["errors"][0]["details"]["format"] == Decimal("9007199254740993.25")
+    assert "Infinity" not in result.stdout
+
+
+@pytest.mark.parametrize("index", ["0", "1"])
+def test_accepts_canonical_array_references(tmp_path: Path, index: str) -> None:
+    result = run_schema(tmp_path, object_schema({
+        "choice": {"anyOf": [{"type": "string"}, {"type": "integer"}]},
+        "copy": {"$ref": f"#/properties/choice/anyOf/{index}"},
+    }))
+    assert result.returncode == 0, result.stdout
+
+
+def test_completes_validation_of_repeated_acyclic_references(tmp_path: Path) -> None:
+    # A small document represents many paths through shared definitions.
+    # The subprocess timeout detects failure to finish, not a timing threshold.
+    schema = object_schema({"value": {"$ref": "#/$defs/n0"}})
+    schema["$defs"] = {
+        f"n{index}": {"anyOf": [
+            {"$ref": f"#/$defs/n{index + 1}"},
+            {"$ref": f"#/$defs/n{index + 1}"},
+        ]} for index in range(30)
+    }
+    schema["$defs"]["n30"] = {"type": "string"}
+    result = run_schema(tmp_path, schema)
+    assert result.returncode == 0, result.stdout
+
+
+@pytest.mark.parametrize(
+    ("first", "last", "depth", "too_deep"),
+    [
+        ("shared", "shared", 8, False),
+        ("shared", "shared", 9, True),
+        ("a", "b", 7, False),
+        ("a", "b", 8, True),
+    ],
+)
+def test_shared_and_recursive_references_preserve_depth_in_each_parent(
+    tmp_path: Path, first: str, last: str, depth: int, too_deep: bool
+) -> None:
+    schema = object_schema({
+        "short": {"$ref": f"#/$defs/{first}"},
+        "long": nested_objects(depth),
+    })
+    leaf = schema["properties"]["long"]
+    while leaf["properties"]:
+        leaf = leaf["properties"]["child"]
+    leaf["properties"]["next"] = {"$ref": f"#/$defs/{last}"}
+    leaf["required"] = ["next"]
+    schema["$defs"] = {
+        "shared": object_schema({"value": {"type": "string"}}),
+        "a": object_schema({"next": {"$ref": "#/$defs/b"}}),
+        "b": object_schema({"next": {"$ref": "#/$defs/a"}}),
+    }
+    result = run_schema(tmp_path, schema)
+    assert result.returncode == int(too_deep), result.stdout
+    assert error_codes(result) == ({"OBJECT_DEPTH_LIMIT_EXCEEDED"} if too_deep else set())
+
+
+def test_installed_cli_runs_with_only_standard_library(tmp_path: Path) -> None:
+    repository = SKILL_ROOT.parents[1]
+    target = tmp_path / "installed"
+    target.mkdir()
+    installed = subprocess.run(
+        [sys.executable, str(repository / "scripts/install_skill.py"), SKILL_ROOT.name, str(target)],
+        check=False, capture_output=True, text=True, timeout=10,
+    )
+    assert installed.returncode == 0, installed.stderr
+    path = tmp_path / "schema.json"
+    path.write_text(json.dumps(object_schema({"answer": {"type": "string"}})), encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", str(target / ".agents/skills" / SKILL_ROOT.name / "scripts/validate_schema.py"), "--format", "json", str(path)],
+        cwd=target, check=False, capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["valid"] is True
 
 
 @pytest.mark.parametrize(

@@ -3,11 +3,15 @@
 
 from __future__ import annotations
 
-import ast
 import re
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import unquote, urlsplit
+
+import yaml
+from markdown_it import MarkdownIt
 
 from skill_composition import validate_skill_composition
 
@@ -19,7 +23,6 @@ MAX_SHORT_DESCRIPTION_LENGTH = 64
 ALL_SKILLS_SELECTOR = "all"
 
 SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
-INTERFACE_VALUE_PATTERN = re.compile(r"^  ([A-Za-z0-9_-]+):[ \t]+(.+)$")
 UNRESOLVED_PLACEHOLDER_PATTERN = re.compile(
     r"\{\{todo-[a-z0-9]+(?:-[a-z0-9]+)*\}\}"
 )
@@ -203,18 +206,40 @@ def _validate_text_files(paths: Iterable[Path]) -> list[ValidationIssue]:
     return issues
 
 
+class UniqueKeyLoader(yaml.SafeLoader):
+    def construct_mapping(self, node, deep=False):
+        mapping = super().construct_mapping(node, deep=deep)
+        if len(mapping) != len(node.value):
+            raise yaml.constructor.ConstructorError(
+                None, None, "キーが重複しています", node.start_mark
+            )
+        return mapping
+
+
+def _parse_yaml_mapping(
+    content: str, path: Path, label: str, *, line_offset: int = 0
+) -> tuple[dict, yaml.MappingNode | None, list[ValidationIssue]]:
+    loader = UniqueKeyLoader(content)
+    try:
+        node = loader.get_single_node()
+        value = loader.construct_document(node) if node is not None else None
+    except yaml.YAMLError as error:
+        mark = getattr(error, "problem_mark", None)
+        location = (
+            f"（{mark.line + line_offset + 1} 行 {mark.column + 1} 列）"
+            if mark is not None else ""
+        )
+        problem = getattr(error, "problem", None)
+        detail = f": {problem}" if problem else ""
+        return {}, None, [ValidationIssue(path, f"{label} を解釈できません{location}{detail}")]
+    finally:
+        loader.dispose()
+    if not isinstance(value, dict):
+        return {}, None, [ValidationIssue(path, f"{label} は mapping として記載してください")]
+    return value, node, []
+
+
 def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
-    import yaml
-
-    class UniqueKeyLoader(yaml.SafeLoader):
-        def construct_mapping(self, node, deep=False):
-            mapping = super().construct_mapping(node, deep=deep)
-            if len(mapping) != len(node.value):
-                raise yaml.constructor.ConstructorError(
-                    None, None, "frontmatter のキーが重複しています", node.start_mark
-                )
-            return mapping
-
     content, read_issue = _read_text(path)
     if read_issue:
         return [read_issue]
@@ -231,31 +256,16 @@ def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
         return [ValidationIssue(path, "YAML frontmatter の終了行がありません")]
 
     frontmatter = "\n".join(lines[1:closing_index])
-    try:
-        parsed_frontmatter = yaml.load(frontmatter, Loader=UniqueKeyLoader)
-    except yaml.YAMLError as error:
-        problem = getattr(error, "problem", None)
-        detail = f": {problem}" if problem else ""
-        mark = getattr(error, "problem_mark", None)
-        location = ""
-        if mark is not None:
-            location = f"（{mark.line + 2} 行 {mark.column + 1} 列）"
-        return [
-            ValidationIssue(
-                path,
-                f"YAML frontmatter を解釈できません{location}{detail}",
-            )
-        ]
-    if not isinstance(parsed_frontmatter, dict):
-        return [ValidationIssue(path, "YAML frontmatter は mapping として記載してください")]
+    parsed_frontmatter, _, parse_issues = _parse_yaml_mapping(
+        frontmatter, path, "YAML frontmatter", line_offset=1
+    )
+    if parse_issues:
+        return parse_issues
 
     expected_keys = {"name", "description"}
     missing_keys = expected_keys - parsed_frontmatter.keys()
-    unexpected_keys = parsed_frontmatter.keys() - expected_keys
     for key in sorted(missing_keys):
         issues.append(ValidationIssue(path, f"frontmatter に {key} がありません"))
-    for key in sorted(unexpected_keys, key=str):
-        issues.append(ValidationIssue(path, f"frontmatter に不要な {key} があります"))
 
     values: dict[str, str] = {}
     for key in sorted(expected_keys & parsed_frontmatter.keys()):
@@ -284,50 +294,33 @@ def _validate_skill_file(path: Path, skill_name: str) -> list[ValidationIssue]:
     return issues
 
 
-def _decode_scalar(raw_value: str) -> str:
-    value = raw_value.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-        try:
-            decoded = ast.literal_eval(value)
-        except (SyntaxError, ValueError):
-            return value
-        if isinstance(decoded, str):
-            return decoded
-    return value
-
-
 def _validate_openai_file(path: Path, skill_name: str) -> list[ValidationIssue]:
     content, read_issue = _read_text(path)
     if read_issue:
         return [read_issue]
     assert content is not None
 
-    issues: list[ValidationIssue] = []
-    lines = content.splitlines()
-    if any("\t" in line[: len(line) - len(line.lstrip())] for line in lines):
-        issues.append(ValidationIssue(path, "インデントには空白を使用してください"))
-
-    try:
-        interface_index = lines.index("interface:")
-    except ValueError:
-        return issues + [ValidationIssue(path, "interface セクションがありません")]
-
+    document, root_node, issues = _parse_yaml_mapping(content, path, "agents/openai.yaml")
+    if issues:
+        return issues
+    interface = document.get("interface")
+    if not isinstance(interface, dict):
+        return [ValidationIssue(path, "interface セクションは mapping として記載してください")]
+    assert root_node is not None
+    interface_node = next(value for key, value in root_node.value if key.value == "interface")
     interface_values: dict[str, str] = {}
-    for line in lines[interface_index + 1 :]:
-        if not line.strip() or line.lstrip().startswith("#"):
+    for key_node, value_node in interface_node.value:
+        if key_node.tag != "tag:yaml.org,2002:str":
+            issues.append(ValidationIssue(path, "interface のキーは文字列にしてください"))
             continue
-        if not line.startswith(" "):
-            break
-        match = INTERFACE_VALUE_PATTERN.fullmatch(line)
-        if not match:
+        key = key_node.value
+        value = interface[key]
+        if not isinstance(value, str):
+            issues.append(ValidationIssue(path, f"interface.{key} は文字列にしてください"))
             continue
-        key, raw_value = match.groups()
-        if key in interface_values:
-            issues.append(ValidationIssue(path, f"interface.{key} が重複しています"))
-            continue
-        if not _is_quoted_string(raw_value):
+        if value_node.style not in {'"', "'"}:
             issues.append(ValidationIssue(path, f"interface.{key} の文字列を引用符で囲んでください"))
-        interface_values[key] = _decode_scalar(raw_value)
+        interface_values[key] = value
 
     required_keys = {"display_name", "short_description", "default_prompt"}
     for key in sorted(required_keys - interface_values.keys()):
@@ -357,9 +350,39 @@ def _validate_openai_file(path: Path, skill_name: str) -> list[ValidationIssue]:
     return issues
 
 
-def _is_quoted_string(raw_value: str) -> bool:
-    value = raw_value.strip()
-    return len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}
+class _HTMLLinks(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.destinations: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "a":
+            self.destinations.extend(value for key, value in attrs if key == "href" and value)
+
+
+def _link_targets(content: str, path: Path) -> set[Path]:
+    """Resolve actual Markdown/HTML links, excluding examples in code nodes."""
+    parser = MarkdownIt("commonmark").enable("table")
+    html = _HTMLLinks()
+    destinations: list[str] = []
+    pending = list(parser.parse(content))
+    for token in pending:
+        if token.type == "link_open":
+            destinations.append(token.attrGet("href"))
+        elif token.type in {"html_inline", "html_block"}:
+            html.feed(token.content)
+        if token.children:
+            pending.extend(token.children)
+    destinations.extend(html.destinations)
+    targets: set[Path] = set()
+    for destination in destinations:
+        try:
+            parts = urlsplit(destination)
+        except ValueError:
+            continue
+        if not parts.scheme and not parts.netloc and parts.path:
+            targets.add((path.parent / unquote(parts.path)).resolve())
+    return targets
 
 
 def _validate_skill_readme(path: Path, skill_name: str) -> list[ValidationIssue]:
@@ -368,14 +391,15 @@ def _validate_skill_readme(path: Path, skill_name: str) -> list[ValidationIssue]
         return [read_issue]
     assert content is not None
 
-    required_fragments = {
+    required_targets = {
         "SPEC.md": "仕様の正本へのリンクを記載してください",
-        "(dist)": "配布物へのパスを記載してください",
+        "dist": "配布物へのパスを記載してください",
     }
+    targets = _link_targets(content, path)
     issues = [
         ValidationIssue(path, message)
-        for fragment, message in required_fragments.items()
-        if fragment not in content
+        for relative, message in required_targets.items()
+        if (path.parent / relative).resolve() not in targets
     ]
     if f"${skill_name}" in content:
         issues.append(
@@ -397,10 +421,11 @@ def _validate_root_readme(
         return [read_issue]
     assert content is not None
 
+    targets = _link_targets(content, path)
     issues = [
         ValidationIssue(path, f"収録スキル一覧に {skill_name} へのリンクがありません")
         for skill_name in skill_names
-        if f"skills/{skill_name}/README.md" not in content
+        if (repository_root / "skills" / skill_name / "README.md").resolve() not in targets
     ]
 
     required_fragments = {
