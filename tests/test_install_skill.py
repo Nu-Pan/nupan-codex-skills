@@ -1,391 +1,229 @@
 from __future__ import annotations
 
-import io
 import os
+import shutil
+import subprocess
 import sys
-import tempfile
-import unittest
-from contextlib import redirect_stdout
 from pathlib import Path
-from unittest.mock import patch
+
+import pytest
+
+import install_skill as installer
+from install_skill import install_all_skills, install_skill
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
-
-import install_skill as install_skill_module  # noqa: E402
-from install_skill import install_all_skills, install_skill  # noqa: E402
+@pytest.fixture
+def source_repository(tmp_path: Path) -> Path:
+    return tmp_path / "source"
 
 
-class InstallSkillTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.temporary_directory = tempfile.TemporaryDirectory()
-        temporary_root = Path(self.temporary_directory.name)
-        self.source_repository = temporary_root / "source"
-        self.target_repository = temporary_root / "target"
-        self.target_repository.mkdir()
+@pytest.fixture
+def target_repository(tmp_path: Path) -> Path:
+    target = tmp_path / "target"
+    target.mkdir()
+    return target
 
-        self.skill_name = "sample-skill"
-        self.distribution_root = self._create_distribution(self.skill_name)
 
-    def _create_distribution(self, skill_name: str) -> Path:
-        distribution_root = (
-            self.source_repository / "skills" / skill_name / "dist"
+@pytest.fixture
+def distribution(source_repository: Path) -> Path:
+    return create_distribution(source_repository, "sample-skill")
+
+
+def create_distribution(repository: Path, name: str) -> Path:
+    root = repository / "skills" / name / "dist"
+    (root / "agents").mkdir(parents=True)
+    (root / "references").mkdir()
+    (root / "SKILL.md").write_text(
+        f"---\nname: {name}\ndescription: Run sample tasks.\n---\n\nRun the task.\n",
+        encoding="utf-8",
+    )
+    (root / "agents/openai.yaml").write_text(
+        f'interface:\n  display_name: "{name}"\n'
+        '  short_description: "Run repeatable sample repository tasks"\n'
+        f'  default_prompt: "Use ${name} to run the task."\n', encoding="utf-8",
+    )
+    (root / "references/guide.md").write_text(f"{name} guide\n", encoding="utf-8")
+    return root
+
+
+def contents(root: Path) -> dict[Path, bytes]:
+    return {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+
+
+@pytest.mark.parametrize("relative", [False, True])
+def test_install_copies_complete_distribution(
+    source_repository: Path, target_repository: Path, distribution: Path, relative: bool
+) -> None:
+    target = Path(os.path.relpath(target_repository)) if relative else target_repository
+    destination = install_skill(source_repository, "sample-skill", target)
+    assert destination == target_repository / ".agents/skills/sample-skill"
+    assert contents(destination) == contents(distribution)
+
+
+def test_reinstall_replaces_complete_distribution(
+    source_repository: Path, target_repository: Path, distribution: Path
+) -> None:
+    destination = install_skill(source_repository, "sample-skill", target_repository)
+    (destination / "obsolete.txt").write_text("obsolete\n", encoding="utf-8")
+    (destination / "SKILL.md").write_text("local change\n", encoding="utf-8")
+    (distribution / "SKILL.md").write_text("updated distribution\n", encoding="utf-8")
+    assert install_skill(source_repository, "sample-skill", target_repository) == destination
+    assert contents(destination) == contents(distribution)
+    assert set(destination.parent.iterdir()) == {destination}
+
+
+def test_all_installs_in_name_order_and_preserves_target_only_skills(
+    source_repository: Path, target_repository: Path, distribution: Path
+) -> None:
+    create_distribution(source_repository, "another-skill")
+    local = target_repository / ".agents/skills/local-skill"
+    local.mkdir(parents=True)
+    (local / "SKILL.md").write_text("target-only skill\n", encoding="utf-8")
+    previous = contents(local)
+    destinations = install_all_skills(source_repository, target_repository)
+    assert [p.name for p in destinations] == ["another-skill", "sample-skill"]
+    for destination in destinations:
+        assert contents(destination) == contents(source_repository / "skills" / destination.name / "dist")
+    assert contents(local) == previous
+    assert set(local.parent.iterdir()) == {*destinations, local}
+
+
+def test_all_prevalidates_every_distribution_before_replacing_any_skill(
+    source_repository: Path, target_repository: Path, distribution: Path
+) -> None:
+    invalid = create_distribution(source_repository, "zeta-skill")
+    (invalid / "agents/openai.yaml").unlink()
+    destination = install_skill(source_repository, "sample-skill", target_repository)
+    previous = contents(destination)
+    (distribution / "SKILL.md").write_text("new distribution\n", encoding="utf-8")
+    with pytest.raises(FileNotFoundError):
+        install_all_skills(source_repository, target_repository)
+    assert contents(destination) == previous
+    assert set(destination.parent.iterdir()) == {destination}
+
+
+@pytest.mark.parametrize("batch", [False, True])
+def test_failed_replacement_restores_current_skill(
+    source_repository: Path, target_repository: Path, distribution: Path,
+    monkeypatch: pytest.MonkeyPatch, batch: bool,
+) -> None:
+    names = ["alpha-skill", "sample-skill", "zeta-skill"] if batch else ["sample-skill"]
+    previous = {}
+    for name in names:
+        if name != "sample-skill":
+            create_distribution(source_repository, name)
+        destination = install_skill(source_repository, name, target_repository)
+        previous[name] = contents(destination)
+        (source_repository / "skills" / name / "dist/SKILL.md").write_text(
+            f"updated {name}\n", encoding="utf-8",
         )
-        (distribution_root / "agents").mkdir(parents=True)
-        (distribution_root / "references").mkdir()
-        (distribution_root / "SKILL.md").write_text(
-            f"---\nname: {skill_name}\n---\n",
-            encoding="utf-8",
-        )
-        (distribution_root / "agents" / "openai.yaml").write_text(
-            f'interface:\n  display_name: "{skill_name}"\n',
-            encoding="utf-8",
-        )
-        (distribution_root / "references" / "guide.md").write_text(
-            f"{skill_name} guide\n",
-            encoding="utf-8",
-        )
-        return distribution_root
+    failed_destination = target_repository / ".agents/skills/sample-skill"
+    real_replace = os.replace
+    failed = False
 
-    def tearDown(self) -> None:
-        self.temporary_directory.cleanup()
+    def fail_once_at_destination(source, target):
+        nonlocal failed
+        # Observe the public destination, leaving temporary paths unconstrained.
+        if Path(target) == failed_destination and not failed:
+            failed = True
+            raise OSError("simulated promotion failure")
+        real_replace(source, target)
 
-    def test_install_skill_copies_complete_distribution(self) -> None:
-        relative_target = Path(os.path.relpath(self.target_repository, Path.cwd()))
-        destination = install_skill(
-            self.source_repository,
-            self.skill_name,
-            relative_target,
-        )
-
-        self.assertEqual(
-            self.target_repository / ".agents" / "skills" / self.skill_name,
-            destination,
-        )
-        source_files = {
-            path.relative_to(self.distribution_root)
-            for path in self.distribution_root.rglob("*")
-            if path.is_file()
-        }
-        installed_files = {
-            path.relative_to(destination)
-            for path in destination.rglob("*")
-            if path.is_file()
-        }
-        self.assertEqual(source_files, installed_files)
-        for relative_path in source_files:
-            self.assertEqual(
-                (self.distribution_root / relative_path).read_bytes(),
-                (destination / relative_path).read_bytes(),
-            )
-
-    def test_reinstall_replaces_complete_distribution(self) -> None:
-        destination = install_skill(
-            self.source_repository,
-            self.skill_name,
-            self.target_repository,
-        )
-        (destination / "obsolete.txt").write_text("obsolete\n", encoding="utf-8")
-        (destination / "SKILL.md").write_text("local change\n", encoding="utf-8")
-        (self.distribution_root / "SKILL.md").write_text(
-            "updated distribution\n",
-            encoding="utf-8",
-        )
-
-        installed_path = install_skill(
-            self.source_repository,
-            self.skill_name,
-            self.target_repository,
-        )
-
-        self.assertEqual(destination, installed_path)
-        self.assertEqual(
-            "updated distribution\n",
-            (installed_path / "SKILL.md").read_text(encoding="utf-8"),
-        )
-        self.assertFalse((installed_path / "obsolete.txt").exists())
-        self.assertEqual(
-            [],
-            list(
-                installed_path.parent.glob(f".{self.skill_name}-install-*")
-            ),
-        )
-
-    def test_install_all_skills_installs_every_distribution_in_name_order(
-        self,
-    ) -> None:
-        another_skill = "another-skill"
-        self._create_distribution(another_skill)
-        local_skill = (
-            self.target_repository / ".agents" / "skills" / "local-skill"
-        )
-        local_skill.mkdir(parents=True)
-        (local_skill / "SKILL.md").write_text(
-            "target-only skill\n",
-            encoding="utf-8",
-        )
-
-        destinations = install_all_skills(
-            self.source_repository,
-            self.target_repository,
-        )
-
-        expected_names = [another_skill, self.skill_name]
-        self.assertEqual(expected_names, [path.name for path in destinations])
-        for skill_name, destination in zip(expected_names, destinations, strict=True):
-            source_root = self.source_repository / "skills" / skill_name / "dist"
-            source_files = {
-                path.relative_to(source_root)
-                for path in source_root.rglob("*")
-                if path.is_file()
-            }
-            installed_files = {
-                path.relative_to(destination)
-                for path in destination.rglob("*")
-                if path.is_file()
-            }
-            self.assertEqual(source_files, installed_files)
-        self.assertEqual(
-            "target-only skill\n",
-            (local_skill / "SKILL.md").read_text(encoding="utf-8"),
-        )
-
-    def test_all_skills_are_prevalidated_before_installation(self) -> None:
-        invalid_distribution = self._create_distribution("zeta-skill")
-        (invalid_distribution / "agents" / "openai.yaml").unlink()
-        destination = (
-            self.target_repository / ".agents" / "skills" / self.skill_name
-        )
-        destination.mkdir(parents=True)
-        (destination / "SKILL.md").write_text(
-            "previous installation\n",
-            encoding="utf-8",
-        )
-        (self.distribution_root / "SKILL.md").write_text(
-            "new distribution\n",
-            encoding="utf-8",
-        )
-
-        with self.assertRaisesRegex(FileNotFoundError, "zeta-skill"):
-            install_all_skills(
-                self.source_repository,
-                self.target_repository,
-            )
-
-        self.assertEqual(
-            "previous installation\n",
-            (destination / "SKILL.md").read_text(encoding="utf-8"),
-        )
-        self.assertFalse(
-            (
-                self.target_repository
-                / ".agents"
-                / "skills"
-                / "zeta-skill"
-            ).exists()
-        )
-
-    def test_failed_all_install_restores_current_skill_only(self) -> None:
-        skill_names = ["alpha-skill", self.skill_name, "zeta-skill"]
-        self._create_distribution(skill_names[0])
-        self._create_distribution(skill_names[2])
-        previous_content: dict[str, str] = {}
-        for skill_name in skill_names:
-            destination = install_skill(
-                self.source_repository,
-                skill_name,
-                self.target_repository,
-            )
-            previous_content[skill_name] = (destination / "SKILL.md").read_text(
-                encoding="utf-8"
-            )
-            source_file = (
-                self.source_repository
-                / "skills"
-                / skill_name
-                / "dist"
-                / "SKILL.md"
-            )
-            source_file.write_text(
-                f"updated {skill_name}\n",
-                encoding="utf-8",
-            )
-
-        failed_destination = (
-            self.target_repository / ".agents" / "skills" / self.skill_name
-        )
-        real_replace = os.replace
-
-        def fail_for_sample_skill(
-            source: os.PathLike[str],
-            target: os.PathLike[str],
-        ) -> None:
-            if (
-                Path(source).name == "distribution"
-                and Path(target) == failed_destination
-            ):
-                raise OSError("simulated batch failure")
-            real_replace(source, target)
-
-        with patch("install_skill.os.replace", side_effect=fail_for_sample_skill):
-            with self.assertRaisesRegex(RuntimeError, self.skill_name):
-                install_all_skills(
-                    self.source_repository,
-                    self.target_repository,
-                )
-
-        installation_root = self.target_repository / ".agents" / "skills"
-        self.assertEqual(
-            "updated alpha-skill\n",
-            (installation_root / "alpha-skill" / "SKILL.md").read_text(
-                encoding="utf-8"
-            ),
-        )
-        for skill_name in (self.skill_name, "zeta-skill"):
-            self.assertEqual(
-                previous_content[skill_name],
-                (installation_root / skill_name / "SKILL.md").read_text(
-                    encoding="utf-8"
-                ),
-            )
-        self.assertEqual([], list(installation_root.glob(".*-install-*")))
-
-    def test_install_all_skills_rejects_missing_or_empty_skills_root(self) -> None:
-        for case_name, create_skills_root in (("missing", False), ("empty", True)):
-            with self.subTest(case_name=case_name):
-                source_repository = (
-                    Path(self.temporary_directory.name) / f"source-{case_name}"
-                )
-                if create_skills_root:
-                    (source_repository / "skills").mkdir(parents=True)
-
-                with self.assertRaises(FileNotFoundError):
-                    install_all_skills(
-                        source_repository,
-                        self.target_repository,
-                    )
-
-    def test_failed_replacement_restores_previous_installation(self) -> None:
-        destination = install_skill(
-            self.source_repository,
-            self.skill_name,
-            self.target_repository,
-        )
-        previous_content = (destination / "SKILL.md").read_text(encoding="utf-8")
-        (self.distribution_root / "SKILL.md").write_text(
-            "updated distribution\n",
-            encoding="utf-8",
-        )
-        real_replace = os.replace
-
-        def fail_when_promoting(
-            source: os.PathLike[str],
-            target: os.PathLike[str],
-        ) -> None:
-            if Path(source).name == "distribution" and Path(target) == destination:
-                raise OSError("simulated promotion failure")
-            real_replace(source, target)
-
-        with patch("install_skill.os.replace", side_effect=fail_when_promoting):
-            with self.assertRaisesRegex(OSError, "simulated promotion failure"):
-                install_skill(
-                    self.source_repository,
-                    self.skill_name,
-                    self.target_repository,
-                )
-
-        self.assertEqual(
-            previous_content,
-            (destination / "SKILL.md").read_text(encoding="utf-8"),
-        )
-        self.assertEqual(
-            [],
-            list(destination.parent.glob(f".{self.skill_name}-install-*")),
-        )
-
-    def test_invalid_inputs_are_rejected_without_creating_installation(self) -> None:
-        missing_target = self.target_repository.parent / "missing-target"
-        file_target = self.target_repository.parent / "target-file"
-        file_target.write_text("not a directory\n", encoding="utf-8")
-
-        invalid_cases = (
-            ("Invalid", self.target_repository, ValueError),
-            ("missing-skill", self.target_repository, FileNotFoundError),
-            (self.skill_name, missing_target, FileNotFoundError),
-            (self.skill_name, file_target, NotADirectoryError),
-        )
-        for skill_name, target, expected_error in invalid_cases:
-            with self.subTest(skill_name=skill_name, target=target):
-                with self.assertRaises(expected_error):
-                    install_skill(self.source_repository, skill_name, target)
-
-        self.assertFalse((self.target_repository / ".agents").exists())
-
-    def test_missing_required_distribution_file_is_rejected(self) -> None:
-        (self.distribution_root / "agents" / "openai.yaml").unlink()
-
-        with self.assertRaisesRegex(FileNotFoundError, "必須ファイル"):
-            install_skill(
-                self.source_repository,
-                self.skill_name,
-                self.target_repository,
-            )
-
-        self.assertFalse((self.target_repository / ".agents").exists())
-
-    def test_main_reports_successful_installation(self) -> None:
-        standard_output = io.StringIO()
-        arguments = [
-            "install_skill.py",
-            self.skill_name,
-            str(self.target_repository),
-        ]
-
-        with (
-            patch.object(
-                install_skill_module,
-                "REPOSITORY_ROOT",
-                self.source_repository,
-            ),
-            patch.object(sys, "argv", arguments),
-            redirect_stdout(standard_output),
-        ):
-            exit_code = install_skill_module.main()
-
-        destination = (
-            self.target_repository / ".agents" / "skills" / self.skill_name
-        )
-        self.assertEqual(0, exit_code)
-        self.assertIn(str(destination), standard_output.getvalue())
-        self.assertTrue((destination / "SKILL.md").is_file())
-
-    def test_main_reports_every_successful_all_installation(self) -> None:
-        another_skill = "another-skill"
-        self._create_distribution(another_skill)
-        standard_output = io.StringIO()
-        arguments = [
-            "install_skill.py",
-            "all",
-            str(self.target_repository),
-        ]
-
-        with (
-            patch.object(
-                install_skill_module,
-                "REPOSITORY_ROOT",
-                self.source_repository,
-            ),
-            patch.object(sys, "argv", arguments),
-            redirect_stdout(standard_output),
-        ):
-            exit_code = install_skill_module.main()
-
-        output = standard_output.getvalue()
-        self.assertEqual(0, exit_code)
-        self.assertLess(output.index(another_skill), output.index(self.skill_name))
-        self.assertIn("全スキルをインストールしました（2 スキル）。", output)
+    monkeypatch.setattr(installer.os, "replace", fail_once_at_destination)
+    with pytest.raises(RuntimeError if batch else OSError):
+        if batch:
+            install_all_skills(source_repository, target_repository)
+        else:
+            install_skill(source_repository, "sample-skill", target_repository)
+    assert failed
+    installation_root = failed_destination.parent
+    for name in names:
+        expected = contents(source_repository / "skills" / name / "dist") if name == "alpha-skill" else previous[name]
+        assert contents(installation_root / name) == expected
+    assert {p.name for p in installation_root.iterdir()} == set(names)
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("empty", [False, True])
+def test_all_rejects_missing_or_empty_skills_root(
+    source_repository: Path, target_repository: Path, empty: bool
+) -> None:
+    if empty:
+        (source_repository / "skills").mkdir(parents=True)
+    with pytest.raises(FileNotFoundError):
+        install_all_skills(source_repository, target_repository)
+    assert not (target_repository / ".agents").exists()
+
+
+@pytest.mark.parametrize("case,error", [
+    ("invalid-name", ValueError), ("missing-skill", FileNotFoundError),
+    ("missing-target", FileNotFoundError), ("file-target", NotADirectoryError),
+    ("missing-metadata", FileNotFoundError),
+])
+def test_invalid_inputs_do_not_create_an_installation(
+    source_repository: Path, target_repository: Path, distribution: Path, case: str, error: type[Exception]
+) -> None:
+    name, target = "sample-skill", target_repository
+    if case == "invalid-name":
+        name = "Invalid"
+    elif case == "missing-skill":
+        name = "missing-skill"
+    elif case == "missing-target":
+        target = target_repository / "missing"
+    elif case == "file-target":
+        target = target_repository / "file"
+        target.write_text("not a directory\n", encoding="utf-8")
+    elif case == "missing-metadata":
+        (distribution / "agents/openai.yaml").unlink()
+    with pytest.raises(error):
+        install_skill(source_repository, name, target)
+    assert not (target_repository / ".agents").exists()
+
+
+@pytest.mark.parametrize("selector", ["sample-skill", "all"])
+def test_main_reports_installed_destinations(
+    source_repository: Path, target_repository: Path, distribution: Path,
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], selector: str,
+) -> None:
+    if selector == "all":
+        create_distribution(source_repository, "another-skill")
+    monkeypatch.setattr(installer, "REPOSITORY_ROOT", source_repository)
+    monkeypatch.setattr(sys, "argv", ["install_skill.py", selector, str(target_repository)])
+    assert installer.main() == 0
+    output = capsys.readouterr().out
+    names = ["another-skill", "sample-skill"] if selector == "all" else ["sample-skill"]
+    positions = []
+    for name in names:
+        destination = target_repository / ".agents/skills" / name
+        assert contents(destination) == contents(source_repository / "skills" / name / "dist")
+        positions.append(output.index(str(destination)))
+    assert positions == sorted(positions)
+
+
+def test_scaffold_and_install_commands_need_only_standard_library(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repository = Path(__file__).resolve().parents[1]
+    source = tmp_path / "source"
+    shutil.copytree(repository / "scripts", source / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
+    target = tmp_path / "target"
+    target.mkdir()
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+    monkeypatch.delenv("PYTHONHOME", raising=False)
+
+    def run(script: str, *args: str):
+        # Keep script-local imports while excluding installed site packages.
+        command = [sys.executable, "-S", str(source / "scripts" / script), *args]
+        result = subprocess.run(command, cwd=target, capture_output=True, text=True, timeout=10)
+        assert result.returncode == 0, result.stderr
+        return result
+
+    for name in ("sample-skill", "another-skill"):
+        run("create_skill.py", name)
+        root = source / "skills" / name
+        assert all((root / path).is_file() for path in ("SPEC.md", "README.md", "dist/SKILL.md", "dist/agents/openai.yaml"))
+    run("install_skill.py", "sample-skill", str(target))
+    installed = target / ".agents/skills/sample-skill"
+    (installed / "obsolete.txt").write_text("old\n")
+    run("install_skill.py", "all", str(target))
+    for name in ("another-skill", "sample-skill"):
+        assert contents(target / ".agents/skills" / name) == contents(source / "skills" / name / "dist")

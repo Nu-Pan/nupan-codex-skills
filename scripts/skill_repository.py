@@ -14,15 +14,12 @@ import yaml
 from markdown_it import MarkdownIt
 
 from skill_composition import validate_skill_composition
+from skill_names import skill_name_error
 
 
-MAX_SKILL_NAME_LENGTH = 64
 MAX_DESCRIPTION_LENGTH = 1024
 MIN_SHORT_DESCRIPTION_LENGTH = 25
 MAX_SHORT_DESCRIPTION_LENGTH = 64
-ALL_SKILLS_SELECTOR = "all"
-
-SKILL_NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 UNRESOLVED_PLACEHOLDER_PATTERN = re.compile(
     r"\{\{todo-[a-z0-9]+(?:-[a-z0-9]+)*\}\}"
 )
@@ -49,20 +46,6 @@ class ValidationIssue:
         except ValueError:
             display_path = self.path
         return f"{display_path}: {self.message}"
-
-
-def skill_name_error(skill_name: str) -> str | None:
-    """Return a validation error for a skill name, if any."""
-
-    if not skill_name:
-        return "スキル名を空にできません"
-    if len(skill_name) > MAX_SKILL_NAME_LENGTH:
-        return f"スキル名は {MAX_SKILL_NAME_LENGTH} 文字以内にしてください"
-    if not SKILL_NAME_PATTERN.fullmatch(skill_name):
-        return "スキル名には小文字の英字、数字、単独のハイフンだけを使用してください"
-    if skill_name == ALL_SKILLS_SELECTOR:
-        return f"{ALL_SKILLS_SELECTOR} は全スキルを指定する予約語です"
-    return None
 
 
 def validate_repository(
@@ -129,10 +112,7 @@ def validate_skill(repository_root: Path, skill_name: str) -> list[ValidationIss
     if not skill_root.is_dir():
         return [ValidationIssue(skill_root, "スキルディレクトリがありません")]
 
-    required_files = tuple(
-        skill_root / Path(str(relative_path).format(skill_name=skill_name))
-        for relative_path in REQUIRED_RELATIVE_FILES
-    )
+    required_files = tuple(skill_root / relative for relative in REQUIRED_RELATIVE_FILES)
     for required_file in required_files:
         if not required_file.is_file():
             issues.append(ValidationIssue(required_file, "必須ファイルがありません"))

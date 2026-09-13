@@ -71,7 +71,7 @@ def validate_skill_composition(
             )
         )
 
-    standalone, standalone_ids = _validate_standalone_scenarios(
+    standalone_ids = _validate_standalone_scenarios(
         data.get("standalone_scenarios"), names, registry_path, issues
     )
     combinations_by_id, combination_ids = _validate_combination_scenarios(
@@ -92,11 +92,6 @@ def validate_skill_composition(
         registry_path,
         issues,
     )
-
-    if standalone is not None:
-        scenario_skills = [scenario["skill"] for scenario in standalone if "skill" in scenario]
-        if scenario_skills != sorted(scenario_skills):
-            issues.append((registry_path, "standalone_scenarios を skill の名前順にしてください"))
 
     issues.extend(_validate_repository_path_references(repository_root, names))
     issues.extend(
@@ -230,10 +225,10 @@ def _validate_standalone_scenarios(
     skill_names: list[str],
     path: Path,
     issues: list[CompositionIssue],
-) -> tuple[list[dict[str, Any]] | None, set[str]]:
+) -> set[str]:
     scenarios = _require_object_list(value, "standalone_scenarios", path, issues)
     if scenarios is None:
-        return None, set()
+        return set()
 
     ids: set[str] = set()
     scenario_skills: list[str] = []
@@ -257,7 +252,9 @@ def _validate_standalone_scenarios(
         issues.append((path, f"単独シナリオがありません: {skill_name}"))
     for skill_name in sorted({name for name in scenario_skills if scenario_skills.count(name) > 1}):
         issues.append((path, f"単独シナリオが重複しています: {skill_name}"))
-    return scenarios, ids
+    if scenario_skills != sorted(scenario_skills):
+        issues.append((path, "standalone_scenarios を skill の名前順にしてください"))
+    return ids
 
 
 def _validate_combination_scenarios(
@@ -416,7 +413,7 @@ def _validate_pairs(
                 issues.append((path, f"pair が未知のスキルを参照しています: {skill_name}"))
 
         relation = pair.get("relation")
-        if relation not in PAIR_RELATIONS:
+        if not isinstance(relation, str) or relation not in PAIR_RELATIONS:
             issues.append((path, f"{label}.relation は orthogonal または overlap にしてください"))
 
         scenario_ids = _validate_string_list(

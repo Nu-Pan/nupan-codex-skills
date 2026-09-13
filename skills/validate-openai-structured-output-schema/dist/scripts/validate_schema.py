@@ -122,6 +122,7 @@ class SchemaValidator:
         self._total_string_length = 0
         self._enum_value_count = 0
         self._acyclic_depths: dict[int, int] = {}
+        self._depth_targets: dict[int, dict[str, Any] | None] = {}
 
     def validate(self) -> list[Diagnostic]:
         if not isinstance(self.document, dict):
@@ -366,7 +367,7 @@ class SchemaValidator:
             else:
                 try:
                     re.compile(pattern)
-                except re.error as error:
+                except (re.error, OverflowError, RecursionError) as error:
                     self._add(
                         "INVALID_PATTERN",
                         pointer,
@@ -583,7 +584,8 @@ class SchemaValidator:
         node: Any,
         active: frozenset[int],
     ) -> tuple[int, bool]:
-        if not isinstance(node, dict):
+        node = self._depth_target(node)
+        if node is None:
             return 0, False
         node_id = id(node)
         if node_id in active:
@@ -611,7 +613,12 @@ class SchemaValidator:
 
         maximum = 0
         cyclic = False
+        visited_children: set[int] = set()
         for child in children:
+            child = self._depth_target(child)
+            if child is None or id(child) in visited_children:
+                continue
+            visited_children.add(id(child))
             depth, child_cyclic = self._depth_from(child, active)
             maximum = max(maximum, depth)
             cyclic |= child_cyclic
@@ -621,6 +628,35 @@ class SchemaValidator:
         if not cyclic:
             self._acyclic_depths[node_id] = maximum
         return maximum, cyclic
+
+    def _depth_target(self, node: Any) -> dict[str, Any] | None:
+        """Collapse reference-only paths without changing object depth.
+
+        Definitions are checked separately as entry points. A loop consisting
+        only of references adds no object level. Sharing the resolved target
+        also lets depth traversal merge duplicate branches into that target.
+        """
+        trail: set[int] = set()
+        while isinstance(node, dict):
+            node_id = id(node)
+            if node_id in self._depth_targets:
+                node = self._depth_targets[node_id]
+                break
+            if node_id in trail:
+                node = None
+                break
+            trail.add(node_id)
+            reference = node.get("$ref")
+            if not (
+                isinstance(reference, str)
+                and node.keys() <= {"$ref", "description", "$defs"}
+            ):
+                break
+            node, _, _ = self._resolve_reference(reference)
+        target = node if isinstance(node, dict) else None
+        for node_id in trail:
+            self._depth_targets[node_id] = target
+        return target
 
     def _invalid_value(
         self,
@@ -760,6 +796,7 @@ def _parse_document(raw: bytes) -> tuple[Any | None, Diagnostic | None]:
             text,
             object_pairs_hook=_reject_duplicate_keys,
             parse_constant=_reject_constant,
+            parse_int=Decimal,
             parse_float=Decimal,
         )
     except json.JSONDecodeError as error:

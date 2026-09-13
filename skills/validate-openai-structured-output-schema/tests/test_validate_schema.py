@@ -208,6 +208,8 @@ def test_requires_additional_properties_false_for_every_object(
         ({"type": ["string", "integer"]}, "INVALID_NULLABLE_TYPE"),
         ({"type": "array"}, "ARRAY_ITEMS_REQUIRED"),
         ({"type": "string", "pattern": "["}, "INVALID_PATTERN"),
+        ({"type": "string", "pattern": "a{100000000000000000000}"}, "INVALID_PATTERN"),
+        ({"type": "string", "pattern": "(" * 1_000 + "a" + ")" * 1_000}, "INVALID_PATTERN"),
         ({"type": "string", "format": "uri"}, "FORMAT_UNSUPPORTED"),
         ({"type": "number", "multipleOf": 0}, "INVALID_KEYWORD_VALUE"),
         ({"type": "string", "properties": {}}, "KEYWORD_TYPE_MISMATCH"),
@@ -454,7 +456,10 @@ def test_accepts_canonical_array_references(tmp_path: Path, index: str) -> None:
     assert result.returncode == 0, result.stdout
 
 
-def test_completes_validation_of_repeated_acyclic_references(tmp_path: Path) -> None:
+@pytest.mark.parametrize("recursive", [False, True])
+def test_completes_validation_of_repeated_references(
+    tmp_path: Path, recursive: bool
+) -> None:
     # A small document represents many paths through shared definitions.
     # The subprocess timeout detects failure to finish, not a timing threshold.
     schema = object_schema({"value": {"$ref": "#/$defs/n0"}})
@@ -464,7 +469,7 @@ def test_completes_validation_of_repeated_acyclic_references(tmp_path: Path) -> 
             {"$ref": f"#/$defs/n{index + 1}"},
         ]} for index in range(30)
     }
-    schema["$defs"]["n30"] = {"type": "string"}
+    schema["$defs"]["n30"] = {"$ref": "#/$defs/n0"} if recursive else {"type": "string"}
     result = run_schema(tmp_path, schema)
     assert result.returncode == 0, result.stdout
 
@@ -654,3 +659,62 @@ def test_enforces_documented_limit_boundaries(
     else:
         assert result.returncode == 1
         assert expected_code in error_codes(result)
+
+
+@pytest.mark.parametrize("spelling", ["integer", "fraction", "exponent"])
+def test_large_integer_values_remain_equal_across_spellings(
+    tmp_path: Path, spelling: str
+) -> None:
+    integer = "9" * 5_000
+    equivalent = {"integer": integer, "fraction": integer + ".0", "exponent": integer + "e0"}[spelling]
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{"n":{"type":"integer","enum":['
+        + integer + "," + equivalent + ']}},"required":["n"],"additionalProperties":false}',
+        encoding="utf-8",
+    )
+    result = run_file(path)
+    assert result.returncode == 1, result.stderr
+    assert error_codes(result) == {"INVALID_KEYWORD_VALUE"}
+
+
+def test_large_integers_are_accepted_without_rounding(tmp_path: Path) -> None:
+    integer = "9" * 5_000
+    different = "9" * 4_999 + "8"
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{"n":{"type":"integer","enum":['
+        + integer + "," + different + '],"maximum":' + integer
+        + '}},"required":["n"],"additionalProperties":false}', encoding="utf-8",
+    )
+    result = run_file(path)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["valid"] is True
+
+
+def test_large_integer_diagnostic_retains_its_value(tmp_path: Path) -> None:
+    integer = "9" * 5_000
+    path = tmp_path / "schema.json"
+    path.write_text(
+        '{"type":"object","properties":{"s":{"type":"string","format":'
+        + integer + '}},"required":["s"],"additionalProperties":false}', encoding="utf-8",
+    )
+    result = run_file(path)
+    assert result.returncode == 1, result.stderr
+    payload = json.loads(result.stdout, parse_int=Decimal, parse_float=Decimal)
+    assert len(payload["errors"]) == 1
+    diagnostic = payload["errors"][0]
+    assert diagnostic["code"] == "FORMAT_UNSUPPORTED"
+    assert diagnostic["schemaPointer"] == "/properties/s"
+    assert diagnostic["details"]["format"] == Decimal(integer)
+
+
+def test_reference_only_cycles_still_validate_their_definitions(tmp_path: Path) -> None:
+    schema = object_schema({"value": {"$ref": "#/$defs/a"}})
+    schema["$defs"] = {
+        "a": {"$ref": "#/$defs/b", "$defs": {"deep": nested_objects(11)}},
+        "b": {"$ref": "#/$defs/a"},
+    }
+    result = run_schema(tmp_path, schema)
+    assert result.returncode == 1, result.stderr
+    assert error_codes(result) == {"OBJECT_DEPTH_LIMIT_EXCEEDED"}

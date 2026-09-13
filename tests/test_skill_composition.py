@@ -1,17 +1,13 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 
 import pytest
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
-
-from create_skill import create_skill  # noqa: E402
-from skill_repository import validate_repository  # noqa: E402
+from create_skill import create_skill
+from skill_repository import validate_repository
 
 
 SKILLS = ["alpha-skill", "beta-skill"]
@@ -239,3 +235,18 @@ def test_targeted_validation_still_checks_complete_registry(repository: Path, re
     names, issues = validate_repository(repository, ["alpha-skill"])
     assert names == ["alpha-skill"]
     assert any("pair がありません" in i.message for i in issues)
+
+
+@pytest.mark.parametrize("invalid", [None, False, 7, [], {}])
+@pytest.mark.parametrize("field", ["skill", "relation"])
+def test_invalid_identifier_types_are_diagnosed_without_crashing(
+    repository: Path, registry, invalid, field: str
+) -> None:
+    if field == "skill":
+        registry["standalone_scenarios"][0][field] = invalid
+    else:
+        registry["pairs"][0][field] = invalid
+
+    found = messages(repository, registry)
+
+    assert any(field in message for message in found)

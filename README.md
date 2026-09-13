@@ -20,7 +20,7 @@ Nu-Pan が管理する Codex スキルのリポジトリです。各スキルの
 
 ## インストール
 
-このリポジトリのルートで、スキル名と導入先ディレクトリを指定します。
+Python を用意し、このリポジトリのルートで、スキル名と導入先ディレクトリを指定します。導入コマンドは標準ライブラリだけで動作します。
 
 ```bash
 python3 scripts/install_skill.py {{skill-name}} {{target-repository}}

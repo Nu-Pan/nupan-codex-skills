@@ -8,7 +8,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from skill_repository import skill_name_error
+from skill_names import skill_name_error
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
