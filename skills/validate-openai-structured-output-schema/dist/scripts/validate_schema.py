@@ -148,7 +148,7 @@ class SchemaValidator:
                 "The root schema must not use anyOf.",
             )
 
-        self._visit(self.document, "/")
+        self._visit(self.document, "")
         self._validate_references()
         self._validate_limits()
         return self._sorted_diagnostics()
@@ -476,7 +476,7 @@ class SchemaValidator:
             if target is not None:
                 # A reference can reach a schema outside the usual schema keywords.
                 # Visiting it also queues its references; visited nodes stop cycles.
-                target_pointer = unquote_to_bytes(reference[1:]).decode("utf-8") or "/"
+                target_pointer = unquote_to_bytes(reference[1:]).decode("utf-8")
                 self._visit(target, target_pointer)
                 continue
             code = (
@@ -679,7 +679,7 @@ class SchemaValidator:
         details: dict[str, Any] | None = None,
     ) -> None:
         self.diagnostics.append(
-            Diagnostic(code, pointer, message, details or {})
+            Diagnostic(code, pointer or "/", message, details or {})
         )
 
     def _sorted_diagnostics(self) -> list[Diagnostic]:
@@ -697,9 +697,11 @@ class SchemaValidator:
 
 
 def _pointer_join(base: str, *tokens: str) -> str:
-    prefix = "" if base == "/" else base
+    # Keep the RFC 6901 root empty internally: '/' names an empty object key.
+    # Only the diagnostic boundary renders the root as '/'.
+    # https://www.rfc-editor.org/rfc/rfc6901#section-5
     encoded = [token.replace("~", "~0").replace("/", "~1") for token in tokens]
-    return prefix + "/" + "/".join(encoded)
+    return base + "/" + "/".join(encoded)
 
 
 def _json_type_name(value: Any) -> str:
@@ -822,6 +824,7 @@ def _json_dumps(value: Any, *, sort_keys: bool = False) -> str:
     The standard encoder handles escaping and scalar syntax; only container
     traversal and Decimal emission are added because json.dumps lacks Decimal
     support. The CLI remains usable with the Python standard library alone.
+    ASCII escaping preserves lone surrogate escapes on UTF-8 stdout as well.
     """
     if isinstance(value, Decimal):
         if not value.is_finite():
@@ -830,7 +833,7 @@ def _json_dumps(value: Any, *, sort_keys: bool = False) -> str:
     if isinstance(value, dict):
         keys = sorted(value) if sort_keys else value.keys()
         return "{" + ",".join(
-            json.dumps(key, ensure_ascii=False) + ":"
+            json.dumps(key) + ":"
             + _json_dumps(value[key], sort_keys=sort_keys)
             for key in keys
         ) + "}"
@@ -838,7 +841,7 @@ def _json_dumps(value: Any, *, sort_keys: bool = False) -> str:
         return "[" + ",".join(
             _json_dumps(item, sort_keys=sort_keys) for item in value
         ) + "]"
-    return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+    return json.dumps(value, allow_nan=False, separators=(",", ":"))
 
 
 def _result(
@@ -862,12 +865,12 @@ def _print_result(
         print(_json_dumps(_result(path, diagnostics)))
         return
     if not diagnostics:
-        print(f"OK: {path} ({PROFILE})")
+        print(f"OK: {path!r} ({PROFILE})")
         return
     for diagnostic in diagnostics:
         print(
-            f"{path}:{diagnostic.schema_pointer}: "
-            f"{diagnostic.code}: {diagnostic.message}"
+            f"{path!r}:{diagnostic.schema_pointer!r}: "
+            f"{diagnostic.code}: {diagnostic.message!r}"
         )
 
 

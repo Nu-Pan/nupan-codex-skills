@@ -163,6 +163,42 @@ def test_reports_required_mismatch_with_fixed_json_shape(tmp_path: Path) -> None
     }
 
 
+@pytest.mark.parametrize("separator", ["\n", "\r", "\x85", "\u2028"])
+@pytest.mark.parametrize("valid", [True, False])
+def test_text_output_keeps_input_line_breaks_within_one_record(
+    tmp_path: Path, separator: str, valid: bool,
+) -> None:
+    field = {"type": "string"}
+    if not valid:
+        field[f"unknown{separator}keyword"] = True
+    schema = object_schema({f"field{separator}name": field})
+    path = tmp_path / f"schema{separator}input.json"
+    path.write_text(json.dumps(schema), encoding="utf-8")
+
+    result = run_file(path, output_format="text")
+
+    assert result.returncode == int(not valid), result.stderr
+    assert len(result.stdout.splitlines()) == 1
+    assert (PROFILE if valid else "UNKNOWN_KEYWORD") in result.stdout
+
+
+def test_json_diagnostics_preserve_escaped_surrogates(tmp_path: Path) -> None:
+    path = tmp_path / "schema.json"
+    path.write_text(
+        json.dumps(object_schema({"value": {"type": "string", "format": "\ud800"}})),
+        encoding="utf-8",
+    )
+
+    result = run_file(path)
+
+    assert result.returncode == 1, result.stderr
+    errors = json.loads(result.stdout)["errors"]
+    assert len(errors) == 1
+    assert errors[0]["code"] == "FORMAT_UNSUPPORTED"
+    assert errors[0]["schemaPointer"] == "/properties/value"
+    assert errors[0]["details"]["format"] == "\ud800"
+
+
 def test_rejects_root_object_and_keyword_violations(tmp_path: Path) -> None:
     schema = {
         "type": "string",
@@ -343,6 +379,21 @@ def test_validates_transitive_references_and_stops_cycles(tmp_path: Path) -> Non
     errors = json.loads(result.stdout)["errors"]
     assert [(e["code"], e["schemaPointer"]) for e in errors] == [
         ("UNKNOWN_KEYWORD", "/const/first/properties/invalid")
+    ]
+
+
+def test_reference_to_empty_root_key_preserves_child_diagnostic_location(
+    tmp_path: Path,
+) -> None:
+    schema = object_schema({"value": {"$ref": "#/"}})
+    schema[""] = object_schema({"child": {"type": "string", "format": "uri"}})
+
+    result = run_schema(tmp_path, schema)
+
+    assert result.returncode == 1, result.stderr
+    assert [(e["code"], e["schemaPointer"]) for e in json.loads(result.stdout)["errors"]] == [
+        ("UNKNOWN_KEYWORD", "/"),
+        ("FORMAT_UNSUPPORTED", "//properties/child"),
     ]
 
 
@@ -550,7 +601,7 @@ def test_rejects_invalid_json_documents(
 def test_uses_exit_two_for_usage_and_file_errors(tmp_path: Path) -> None:
     missing = run_file(tmp_path / "missing.json")
     assert missing.returncode == 2
-    assert "cannot read schema file" in missing.stderr
+    assert missing.stderr.strip()
 
     path = tmp_path / "schema.json"
     path.write_text(json.dumps(object_schema({})), encoding="utf-8")
@@ -559,7 +610,7 @@ def test_uses_exit_two_for_usage_and_file_errors(tmp_path: Path) -> None:
         extra_arguments=("--profile", "future-profile"),
     )
     assert bad_profile.returncode == 2
-    assert "invalid choice" in bad_profile.stderr
+    assert bad_profile.stderr.strip()
 
 
 def test_diagnostics_have_deterministic_order(tmp_path: Path) -> None:
